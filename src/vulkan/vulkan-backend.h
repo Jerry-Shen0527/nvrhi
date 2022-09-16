@@ -274,9 +274,15 @@ namespace nvrhi::vulkan
         void freeBufferMemory(Buffer* buffer) const;
 
         vk::Result allocateTextureMemory(Texture* texture) const;
+        vk::Result allocateExternalTextureMemory(Texture* texture) const;
         void freeTextureMemory(Texture* texture) const;
 
         vk::Result allocateMemory(MemoryResource* res,
+            vk::MemoryRequirements memRequirements,
+            vk::MemoryPropertyFlags memPropertyFlags,
+            bool enableDeviceAddress = false) const;
+        vk::Result allocateExternalMemory(
+            MemoryResource* res,
             vk::MemoryRequirements memRequirements,
             vk::MemoryPropertyFlags memPropertyFlags,
             bool enableDeviceAddress = false) const;

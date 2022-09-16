@@ -319,7 +319,15 @@ namespace nvrhi::vulkan
 
         if (!desc.isVirtual)
         {
-            res = m_Allocator.allocateTextureMemory(texture);
+            if (desc.sharedResourceFlags == SharedResourceFlags::Shared)
+            {
+                res = m_Allocator.allocateExternalTextureMemory(texture);
+            }
+            else
+            {
+                res = m_Allocator.allocateTextureMemory(texture);
+            }
+
             ASSERT_VK_OK(res);
             CHECK_VK_FAIL(res)
 

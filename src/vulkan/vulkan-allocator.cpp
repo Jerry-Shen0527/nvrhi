@@ -20,6 +20,11 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
+#ifdef _WIN64
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <dxgi1_2.h>
+#endif
+
 #include "vulkan-backend.h"
 
 namespace nvrhi::vulkan
@@ -81,6 +86,22 @@ namespace nvrhi::vulkan
         return vk::Result::eSuccess;
     }
 
+    vk::Result VulkanAllocator::allocateExternalTextureMemory(Texture* texture) const
+    {
+        // grab the image memory requirements
+        vk::MemoryRequirements memRequirements;
+        m_Context.device.getImageMemoryRequirements(texture->image, &memRequirements);
+
+        // allocate memory
+        const vk::MemoryPropertyFlags memProperties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        const vk::Result res = allocateExternalMemory(texture, memRequirements, memProperties);
+        CHECK_VK_RETURN(res)
+
+        m_Context.device.bindImageMemory(texture->image, texture->memory, 0);
+
+        return vk::Result::eSuccess;
+    }
+
     void VulkanAllocator::freeTextureMemory(Texture *texture) const
     {
         freeMemory(texture);
@@ -124,6 +145,65 @@ namespace nvrhi::vulkan
         allocInfo.setPNext(&allocFlags);
 
         return m_Context.device.allocateMemory(&allocInfo, m_Context.allocationCallbacks, &res->memory);
+    }
+
+        vk::Result VulkanAllocator::allocateExternalMemory(
+        MemoryResource *res,
+        vk::MemoryRequirements memRequirements,
+        vk::MemoryPropertyFlags memPropertyFlags,
+        bool enableDeviceAddress) const
+    {
+        res->managed = true;
+
+        // find a memory space that satisfies the requirements
+        vk::PhysicalDeviceMemoryProperties memProperties;
+        m_Context.physicalDevice.getMemoryProperties(&memProperties);
+
+        uint32_t memTypeIndex;
+        for (memTypeIndex = 0; memTypeIndex < memProperties.memoryTypeCount; memTypeIndex++)
+        {
+            if ((memRequirements.memoryTypeBits & (1 << memTypeIndex)) &&
+                ((memProperties.memoryTypes[memTypeIndex].propertyFlags & memPropertyFlags) ==
+                 memPropertyFlags))
+            {
+                break;
+            }
+        }
+
+        if (memTypeIndex == memProperties.memoryTypeCount)
+        {
+            // xxxnsubtil: this is incorrect; need better error reporting
+            return vk::Result::eErrorOutOfDeviceMemory;
+        }
+
+        //External settings
+        VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
+        vulkanExportMemoryWin32HandleInfoKHR.sType =
+            VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+        vulkanExportMemoryWin32HandleInfoKHR.pNext = NULL;
+        // vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &winSecurityAttributes;
+        vulkanExportMemoryWin32HandleInfoKHR.dwAccess =
+            DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
+        vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR)NULL;
+        VkExportMemoryAllocateInfoKHR vulkanExportMemoryAllocateInfoKHR = {};
+        vulkanExportMemoryAllocateInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+        vulkanExportMemoryAllocateInfoKHR.pNext = &vulkanExportMemoryWin32HandleInfoKHR;
+        vulkanExportMemoryAllocateInfoKHR.handleTypes =
+            VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+
+        // allocate memory
+        auto allocFlags = vk::MemoryAllocateFlagsInfo();
+        if (enableDeviceAddress)
+            allocFlags.flags |= vk::MemoryAllocateFlagBits::eDeviceAddress;
+        allocFlags.setPNext(&vulkanExportMemoryAllocateInfoKHR);
+
+        auto allocInfo = vk::MemoryAllocateInfo()
+                         .setAllocationSize(memRequirements.size)
+                         .setMemoryTypeIndex(memTypeIndex);
+        allocInfo.setPNext(&allocFlags);
+
+        return m_Context.device.allocateMemory(
+            &allocInfo, m_Context.allocationCallbacks, &res->memory);
     }
 
     void VulkanAllocator::freeMemory(MemoryResource *res) const
