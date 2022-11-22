@@ -446,6 +446,34 @@ namespace nvrhi
         constexpr TextureDesc& setUseClearValue(bool value) { useClearValue = value; return *this; }
         constexpr TextureDesc& setInitialState(ResourceStates value) { initialState = value; return *this; }
         constexpr TextureDesc& setKeepInitialState(bool value) { keepInitialState = value; return *this; }
+        
+        friend bool operator==(const TextureDesc& lhs, const TextureDesc& rhs)
+        {
+            return lhs.width == rhs.width
+                   && lhs.height == rhs.height
+                   && lhs.depth == rhs.depth
+                   && lhs.arraySize == rhs.arraySize
+                   && lhs.mipLevels == rhs.mipLevels
+                   && lhs.sampleCount == rhs.sampleCount
+                   && lhs.sampleQuality == rhs.sampleQuality
+                   && lhs.format == rhs.format
+                   && lhs.dimension == rhs.dimension
+                   && lhs.isRenderTarget == rhs.isRenderTarget
+                   && lhs.isUAV == rhs.isUAV
+                   && lhs.isTypeless == rhs.isTypeless
+                   && lhs.isShadingRateSurface == rhs.isShadingRateSurface
+                   && lhs.sharedResourceFlags == rhs.sharedResourceFlags
+                   && lhs.isVirtual == rhs.isVirtual
+                   && lhs.clearValue == rhs.clearValue
+                   && lhs.useClearValue == rhs.useClearValue
+                   && lhs.initialState == rhs.initialState
+                   && lhs.keepInitialState == rhs.keepInitialState;
+        }
+
+        friend bool operator!=(const TextureDesc& lhs, const TextureDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     // describes a 2D section of a single mip level + single slice of a texture
