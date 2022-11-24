@@ -654,6 +654,34 @@ namespace nvrhi
         constexpr BufferDesc& setInitialState(ResourceStates value) { initialState = value; return *this; }
         constexpr BufferDesc& setKeepInitialState(bool value) { keepInitialState = value; return *this; }
         constexpr BufferDesc& setCpuAccess(CpuAccessMode value) { cpuAccess = value; return *this; }
+
+        friend bool operator==(const BufferDesc& lhs, const BufferDesc& rhs)
+        {
+            return lhs.byteSize == rhs.byteSize
+                   && lhs.structStride == rhs.structStride
+                   && lhs.maxVersions == rhs.maxVersions
+                   && lhs.format == rhs.format
+                   && lhs.canHaveUAVs == rhs.canHaveUAVs
+                   && lhs.canHaveTypedViews == rhs.canHaveTypedViews
+                   && lhs.canHaveRawViews == rhs.canHaveRawViews
+                   && lhs.isVertexBuffer == rhs.isVertexBuffer
+                   && lhs.isIndexBuffer == rhs.isIndexBuffer
+                   && lhs.isConstantBuffer == rhs.isConstantBuffer
+                   && lhs.isDrawIndirectArgs == rhs.isDrawIndirectArgs
+                   && lhs.isAccelStructBuildInput == rhs.isAccelStructBuildInput
+                   && lhs.isAccelStructStorage == rhs.isAccelStructStorage
+                   && lhs.isVolatile == rhs.isVolatile
+                   && lhs.isVirtual == rhs.isVirtual
+                   && lhs.initialState == rhs.initialState
+                   && lhs.keepInitialState == rhs.keepInitialState
+                   && lhs.cpuAccess == rhs.cpuAccess
+                   && lhs.sharedResourceFlags == rhs.sharedResourceFlags;
+        }
+
+        friend bool operator!=(const BufferDesc& lhs, const BufferDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     struct BufferRange
@@ -1024,6 +1052,29 @@ namespace nvrhi
         constexpr RasterState& enableQuadFill() { quadFillEnable = true; return *this; }
         constexpr RasterState& disableQuadFill() { quadFillEnable = false; return *this; }
         constexpr RasterState& setSamplePositions(const char* x, const char* y, int count) { for (int i = 0; i < count; i++) { samplePositionsX[i] = x[i]; samplePositionsY[i] = y[i]; } return *this; }
+
+        friend bool operator==(const RasterState& lhs, const RasterState& rhs)
+        {
+            return lhs.fillMode == rhs.fillMode
+                   && lhs.cullMode == rhs.cullMode
+                   && lhs.frontCounterClockwise == rhs.frontCounterClockwise
+                   && lhs.depthClipEnable == rhs.depthClipEnable
+                   && lhs.scissorEnable == rhs.scissorEnable
+                   && lhs.multisampleEnable == rhs.multisampleEnable
+                   && lhs.antialiasedLineEnable == rhs.antialiasedLineEnable
+                   && lhs.depthBias == rhs.depthBias
+                   && lhs.depthBiasClamp == rhs.depthBiasClamp
+                   && lhs.slopeScaledDepthBias == rhs.slopeScaledDepthBias
+                   && lhs.forcedSampleCount == rhs.forcedSampleCount
+                   && lhs.programmableSamplePositionsEnable == rhs.programmableSamplePositionsEnable
+                   && lhs.conservativeRasterEnable == rhs.conservativeRasterEnable
+                   && lhs.quadFillEnable == rhs.quadFillEnable;
+        }
+
+        friend bool operator!=(const RasterState& lhs, const RasterState& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -1067,6 +1118,19 @@ namespace nvrhi
             constexpr StencilOpDesc& setDepthFailOp(StencilOp value) { depthFailOp = value; return *this; }
             constexpr StencilOpDesc& setPassOp(StencilOp value) { passOp = value; return *this; }
             constexpr StencilOpDesc& setStencilFunc(ComparisonFunc value) { stencilFunc = value; return *this; }
+
+            friend bool operator==(const StencilOpDesc& lhs, const StencilOpDesc& rhs)
+            {
+                return lhs.failOp == rhs.failOp
+                       && lhs.depthFailOp == rhs.depthFailOp
+                       && lhs.passOp == rhs.passOp
+                       && lhs.stencilFunc == rhs.stencilFunc;
+            }
+
+            friend bool operator!=(const StencilOpDesc& lhs, const StencilOpDesc& rhs)
+            {
+                return !(lhs == rhs);
+            }
         };
 
         bool            depthTestEnable = true;
@@ -1094,6 +1158,25 @@ namespace nvrhi
         constexpr DepthStencilState& setStencilRefValue(uint8_t value) { stencilRefValue = value; return *this; }
         constexpr DepthStencilState& setFrontFaceStencil(const StencilOpDesc& value) { frontFaceStencil = value; return *this; }
         constexpr DepthStencilState& setBackFaceStencil(const StencilOpDesc& value) { backFaceStencil = value; return *this; }
+
+
+        friend bool operator==(const DepthStencilState& lhs, const DepthStencilState& rhs)
+        {
+            return lhs.depthTestEnable == rhs.depthTestEnable
+                   && lhs.depthWriteEnable == rhs.depthWriteEnable
+                   && lhs.depthFunc == rhs.depthFunc
+                   && lhs.stencilEnable == rhs.stencilEnable
+                   && lhs.stencilReadMask == rhs.stencilReadMask
+                   && lhs.stencilWriteMask == rhs.stencilWriteMask
+                   && lhs.stencilRefValue == rhs.stencilRefValue
+                   && lhs.frontFaceStencil == rhs.frontFaceStencil
+                   && lhs.backFaceStencil == rhs.backFaceStencil;
+        }
+
+        friend bool operator!=(const DepthStencilState& lhs, const DepthStencilState& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -1199,6 +1282,19 @@ namespace nvrhi
         constexpr FramebufferAttachment& setReadOnly(bool ro) { isReadOnly = ro; return *this; }
 
         [[nodiscard]] bool valid() const { return texture != nullptr; }
+
+        friend bool operator==(const FramebufferAttachment& lhs, const FramebufferAttachment& rhs)
+        {
+            return lhs.texture == rhs.texture
+                   && lhs.subresources == rhs.subresources
+                   && lhs.format == rhs.format
+                   && lhs.isReadOnly == rhs.isReadOnly;
+        }
+
+        friend bool operator!=(const FramebufferAttachment& lhs, const FramebufferAttachment& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     struct FramebufferDesc
@@ -1216,6 +1312,18 @@ namespace nvrhi
         FramebufferDesc& setShadingRateAttachment(const FramebufferAttachment& d) { shadingRateAttachment = d; return *this; }
         FramebufferDesc& setShadingRateAttachment(ITexture* texture) { shadingRateAttachment = FramebufferAttachment().setTexture(texture); return *this; }
         FramebufferDesc& setShadingRateAttachment(ITexture* texture, TextureSubresourceSet subresources) { shadingRateAttachment = FramebufferAttachment().setTexture(texture).setSubresources(subresources); return *this; }
+
+        friend bool operator==(const FramebufferDesc& lhs, const FramebufferDesc& rhs)
+        {
+            return lhs.colorAttachments == rhs.colorAttachments
+                   && lhs.depthAttachment == rhs.depthAttachment
+                   && lhs.shadingRateAttachment == rhs.shadingRateAttachment;
+        }
+
+        friend bool operator!=(const FramebufferDesc& lhs, const FramebufferDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     struct FramebufferInfo
@@ -1545,6 +1653,19 @@ namespace nvrhi
         constexpr VulkanBindingOffsets& setSamplerOffset(uint32_t value) { sampler = value; return *this; }
         constexpr VulkanBindingOffsets& setConstantBufferOffset(uint32_t value) { constantBuffer = value; return *this; }
         constexpr VulkanBindingOffsets& setUnorderedAccessViewOffset(uint32_t value) { unorderedAccess = value; return *this; }
+
+        friend bool operator==(const VulkanBindingOffsets& lhs, const VulkanBindingOffsets& rhs)
+        {
+            return lhs.shaderResource == rhs.shaderResource
+                   && lhs.sampler == rhs.sampler
+                   && lhs.constantBuffer == rhs.constantBuffer
+                   && lhs.unorderedAccess == rhs.unorderedAccess;
+        }
+
+        friend bool operator!=(const VulkanBindingOffsets& lhs, const VulkanBindingOffsets& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     struct BindingLayoutDesc
@@ -1558,6 +1679,19 @@ namespace nvrhi
         BindingLayoutDesc& setRegisterSpace(uint32_t value) { registerSpace = value; return *this; }
         BindingLayoutDesc& addItem(const BindingLayoutItem& value) { bindings.push_back(value); return *this; }
         BindingLayoutDesc& setBindingOffsets(const VulkanBindingOffsets& value) { bindingOffsets = value; return *this; }
+
+        friend bool operator==(const BindingLayoutDesc& lhs, const BindingLayoutDesc& rhs)
+        {
+            return lhs.visibility == rhs.visibility
+                   && lhs.registerSpace == rhs.registerSpace
+                   && lhs.bindings == rhs.bindings
+                   && lhs.bindingOffsets == rhs.bindingOffsets;
+        }
+
+        friend bool operator!=(const BindingLayoutDesc& lhs, const BindingLayoutDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     // Bindless layouts allow applications to attach a descriptor table to an unbounded
@@ -1577,6 +1711,19 @@ namespace nvrhi
         BindlessLayoutDesc& setFirstSlot(uint32_t value) { firstSlot = value; return *this; }
         BindlessLayoutDesc& setMaxCapacity(uint32_t value) { maxCapacity = value; return *this; }
         BindlessLayoutDesc& addRegisterSpace(const BindingLayoutItem& value) { registerSpaces.push_back(value); return *this; }
+
+        friend bool operator==(const BindlessLayoutDesc& lhs, const BindlessLayoutDesc& rhs)
+        {
+            return lhs.visibility == rhs.visibility
+                   && lhs.firstSlot == rhs.firstSlot
+                   && lhs.maxCapacity == rhs.maxCapacity
+                   && lhs.registerSpaces == rhs.registerSpaces;
+        }
+
+        friend bool operator!=(const BindlessLayoutDesc& lhs, const BindlessLayoutDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     class IBindingLayout : public IResource
@@ -1928,6 +2075,19 @@ namespace nvrhi
         constexpr RenderState& setDepthStencilState(const DepthStencilState& value) { depthStencilState = value; return *this; }
         constexpr RenderState& setRasterState(const RasterState& value) { rasterState = value; return *this; }
         constexpr RenderState& setSinglePassStereoState(const SinglePassStereoState& value) { singlePassStereo = value; return *this; }
+
+        friend bool operator==(const RenderState& lhs, const RenderState& rhs)
+        {
+            return lhs.blendState == rhs.blendState
+                   && lhs.depthStencilState == rhs.depthStencilState
+                   && lhs.rasterState == rhs.rasterState
+                   && lhs.singlePassStereo == rhs.singlePassStereo;
+        }
+
+        friend bool operator!=(const RenderState& lhs, const RenderState& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     enum class VariableShadingRate : uint8_t
@@ -2005,6 +2165,26 @@ namespace nvrhi
         GraphicsPipelineDesc& setRenderState(const RenderState& value) { renderState = value; return *this; }
         GraphicsPipelineDesc& setVariableRateShadingState(const VariableRateShadingState& value) { shadingRateState = value; return *this; }
         GraphicsPipelineDesc& addBindingLayout(IBindingLayout* layout) { bindingLayouts.push_back(layout); return *this; }
+
+        friend bool operator==(const GraphicsPipelineDesc& lhs, const GraphicsPipelineDesc& rhs)
+        {
+            return lhs.primType == rhs.primType
+                   && lhs.patchControlPoints == rhs.patchControlPoints
+                   && lhs.inputLayout == rhs.inputLayout
+                   && lhs.VS == rhs.VS
+                   && lhs.HS == rhs.HS
+                   && lhs.DS == rhs.DS
+                   && lhs.GS == rhs.GS
+                   && lhs.PS == rhs.PS
+                   && lhs.renderState == rhs.renderState
+                   && lhs.shadingRateState == rhs.shadingRateState
+                   && lhs.bindingLayouts == rhs.bindingLayouts;
+        }
+
+        friend bool operator!=(const GraphicsPipelineDesc& lhs, const GraphicsPipelineDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     class IGraphicsPipeline : public IResource 
@@ -2374,6 +2554,20 @@ namespace nvrhi
         CommandListParameters& setScratchChunkSize(size_t value) { scratchChunkSize = value; return *this; }
         CommandListParameters& setScratchMaxMemory(size_t value) { scratchMaxMemory = value; return *this; }
         CommandListParameters& setQueueType(CommandQueue value) { queueType = value; return *this; }
+
+        friend bool operator==(const CommandListParameters& lhs, const CommandListParameters& rhs)
+        {
+            return lhs.enableImmediateExecution == rhs.enableImmediateExecution
+                   && lhs.uploadChunkSize == rhs.uploadChunkSize
+                   && lhs.scratchChunkSize == rhs.scratchChunkSize
+                   && lhs.scratchMaxMemory == rhs.scratchMaxMemory
+                   && lhs.queueType == rhs.queueType;
+        }
+
+        friend bool operator!=(const CommandListParameters& lhs, const CommandListParameters& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
     
     //////////////////////////////////////////////////////////////////////////
@@ -2551,7 +2745,8 @@ namespace nvrhi
         virtual BindingLayoutHandle createBindingLayout(const BindingLayoutDesc& desc) = 0;
         virtual BindingLayoutHandle createBindlessLayout(const BindlessLayoutDesc& desc) = 0;
 
-        virtual BindingSetHandle createBindingSet(const BindingSetDesc& desc, IBindingLayout* layout) = 0;
+        // layout should be set. Here setting the default nullptr is only for the template to compile.
+        virtual BindingSetHandle createBindingSet(const BindingSetDesc& desc, IBindingLayout* layout = nullptr) = 0;
         virtual DescriptorTableHandle createDescriptorTable(IBindingLayout* layout) = 0;
 
         virtual void resizeDescriptorTable(IDescriptorTable* descriptorTable, uint32_t newSize, bool keepContents = true) = 0;
