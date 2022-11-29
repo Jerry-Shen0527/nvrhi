@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 
+
 #define NVRHI_ENUM_CLASS_FLAG_OPERATORS(T) \
     inline T operator | (T a, T b) { return T(uint32_t(a) | uint32_t(b)); } \
     inline T operator & (T a, T b) { return T(uint32_t(a) & uint32_t(b)); } /* NOLINT(bugprone-macro-parentheses) */ \
@@ -60,6 +61,11 @@
 
 namespace nvrhi
 {
+    namespace d3d12
+    {
+        class DeviceResources;
+    }
+
     // Version of the public API provided by NVRHI.
     // Increment this when any changes to the API are made.
     static constexpr uint32_t c_HeaderVersion = 4;
@@ -684,6 +690,22 @@ namespace nvrhi
         }
     };
 
+    struct CudaLinearBufferDesc
+    {
+        uint64_t size;
+        uint64_t element_size;
+
+        friend bool operator==(const CudaLinearBufferDesc& lhs, const CudaLinearBufferDesc& rhs)
+        {
+            return lhs.size == rhs.size && lhs.element_size == rhs.element_size;
+        }
+
+        friend bool operator!=(const CudaLinearBufferDesc& lhs, const CudaLinearBufferDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
+    };
+
     struct BufferRange
     {
         uint64_t byteOffset = 0;
@@ -713,6 +735,30 @@ namespace nvrhi
     };
 
     typedef RefCountPtr<IBuffer> BufferHandle;
+
+    class ICudaLinearBuffer : public IResource
+    {
+       public:
+        [[nodiscard]] virtual const CudaLinearBufferDesc& getDesc() const = 0;
+    };
+
+    typedef RefCountPtr<ICudaLinearBuffer> CudaLinearBufferHandle;
+
+    class CudaLinearBuffer : public RefCounter<ICudaLinearBuffer>
+    {
+       public:
+        const CudaLinearBufferDesc desc;
+        void* data;
+
+        CudaLinearBuffer(const CudaLinearBufferDesc& desc);
+
+        ~CudaLinearBuffer() override;
+
+        const CudaLinearBufferDesc& getDesc() const override
+        {
+            return desc;
+        }
+    };
 
     //////////////////////////////////////////////////////////////////////////
     // Shader
@@ -2699,6 +2745,13 @@ namespace nvrhi
         virtual void unmapStagingTexture(IStagingTexture* tex) = 0;
 
         virtual BufferHandle createBuffer(const BufferDesc& d) = 0;
+        CudaLinearBufferHandle createCudaLinearBuffer(const CudaLinearBufferDesc& d)
+        {
+            CudaLinearBufferDesc desc = d;
+            CudaLinearBuffer* buffer = new CudaLinearBuffer(desc);
+
+            return CudaLinearBufferHandle::Create(buffer);
+        }
         virtual void *mapBuffer(IBuffer* buffer, CpuAccessMode cpuAccess) = 0;
         virtual void unmapBuffer(IBuffer* buffer) = 0;
         virtual MemoryRequirements getBufferMemoryRequirements(IBuffer* buffer) = 0;
@@ -2778,6 +2831,9 @@ namespace nvrhi
         {
             return executeCommandLists(&commandList, 1, executionQueue);
         }
+
+        // Cuda related
+
     };
 
     typedef RefCountPtr<IDevice> DeviceHandle;
