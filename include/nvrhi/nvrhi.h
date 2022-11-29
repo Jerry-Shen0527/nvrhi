@@ -60,6 +60,7 @@
 
 namespace nvrhi
 {
+    struct DescriptorTableDesc;
     // Version of the public API provided by NVRHI.
     // Increment this when any changes to the API are made.
     static constexpr uint32_t c_HeaderVersion = 4;
@@ -1252,6 +1253,25 @@ namespace nvrhi
         SamplerDesc& setAddressW(SamplerAddressMode mode) { addressW = mode; return *this; }
         SamplerDesc& setAllAddressModes(SamplerAddressMode mode) { addressU = addressV = addressW = mode; return *this; }
         SamplerDesc& setReductionType(SamplerReductionType type) { reductionType = type; return *this; }
+
+        friend bool operator==(const SamplerDesc& lhs, const SamplerDesc& rhs)
+        {
+            return lhs.borderColor == rhs.borderColor
+                   && lhs.maxAnisotropy == rhs.maxAnisotropy
+                   && lhs.mipBias == rhs.mipBias
+                   && lhs.minFilter == rhs.minFilter
+                   && lhs.magFilter == rhs.magFilter
+                   && lhs.mipFilter == rhs.mipFilter
+                   && lhs.addressU == rhs.addressU
+                   && lhs.addressV == rhs.addressV
+                   && lhs.addressW == rhs.addressW
+                   && lhs.reductionType == rhs.reductionType;
+        }
+
+        friend bool operator!=(const SamplerDesc& lhs, const SamplerDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     class ISampler : public IResource 
@@ -2204,6 +2224,17 @@ namespace nvrhi
 
         ComputePipelineDesc& setComputeShader(IShader* value) { CS = value; return *this; }
         ComputePipelineDesc& addBindingLayout(IBindingLayout* layout) { bindingLayouts.push_back(layout); return *this; }
+
+        friend bool operator==(const ComputePipelineDesc& lhs, const ComputePipelineDesc& rhs)
+        {
+            return lhs.CS == rhs.CS
+                   && lhs.bindingLayouts == rhs.bindingLayouts;
+        }
+
+        friend bool operator!=(const ComputePipelineDesc& lhs, const ComputePipelineDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
     };
 
     class IComputePipeline : public IResource 
@@ -2748,6 +2779,13 @@ namespace nvrhi
         // layout should be set. Here setting the default nullptr is only for the template to compile.
         virtual BindingSetHandle createBindingSet(const BindingSetDesc& desc, IBindingLayout* layout = nullptr) = 0;
         virtual DescriptorTableHandle createDescriptorTable(IBindingLayout* layout) = 0;
+        DescriptorTableHandle createDescriptorTable(
+            const DescriptorTableDesc& desc,
+            IBindingLayout* layout = nullptr)
+        {
+            assert(0);//This should never be called. Only to pass the compile.
+            return createDescriptorTable(layout);
+        }
 
         virtual void resizeDescriptorTable(IDescriptorTable* descriptorTable, uint32_t newSize, bool keepContents = true) = 0;
         virtual bool writeDescriptorTable(IDescriptorTable* descriptorTable, const BindingSetItem& item) = 0;
