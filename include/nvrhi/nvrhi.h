@@ -730,31 +730,61 @@ namespace nvrhi
         [[nodiscard]] virtual const BufferDesc& getDesc() const = 0;
     };
 
-    typedef RefCountPtr<IBuffer> BufferHandle;
+    using BufferHandle = RefCountPtr<IBuffer>;
 
-    class ICudaLinearBuffer : public IResource
+    namespace detail
     {
-       public:
-        [[nodiscard]] virtual const CudaLinearBufferDesc& getDesc() const = 0;
-    };
 
-    typedef RefCountPtr<ICudaLinearBuffer> CudaLinearBufferHandle;
-
-    class CudaLinearBuffer : public RefCounter<ICudaLinearBuffer>
-    {
-       public:
-        const CudaLinearBufferDesc desc;
-        void* data;
-
-        CudaLinearBuffer(const CudaLinearBufferDesc& desc);
-
-        ~CudaLinearBuffer() override;
-
-        const CudaLinearBufferDesc& getDesc() const override
+        struct PtrTranpoline
         {
-            return desc;
-        }
-    };
+            explicit PtrTranpoline(void* ptr, uint64_t size) : ptr(ptr)
+            {
+                assert(sizeof(ptr) == size);
+            }
+
+            template<typename T>
+            operator T*()
+            {
+                return ptr;
+            }
+
+           private:
+            void* ptr;
+        };
+
+        class ICudaLinearBuffer : public IResource
+        {
+        public:
+            [[nodiscard]] virtual const CudaLinearBufferDesc& getDesc() const = 0;
+            virtual detail::PtrTranpoline GetGPUAddress() const = 0;
+        };
+
+
+        class CudaLinearBuffer : public RefCounter<ICudaLinearBuffer>
+        {
+        public:
+            CudaLinearBuffer(const CudaLinearBufferDesc& desc);
+
+            ~CudaLinearBuffer() override;
+
+            const CudaLinearBufferDesc& getDesc() const override
+            {
+                return desc;
+            }
+
+            PtrTranpoline GetGPUAddress() const override
+            {
+                return PtrTranpoline{ data, desc.element_size };
+            }
+
+        protected:
+            const CudaLinearBufferDesc desc;
+            void* data;
+        };
+    } // namespace detail
+
+
+    using CudaLinearBufferHandle = RefCountPtr<detail::ICudaLinearBuffer>;
 
     //////////////////////////////////////////////////////////////////////////
     // Shader
@@ -2455,6 +2485,18 @@ namespace nvrhi
             PipelineShaderDesc& setExportName(const std::string& value) { exportName = value; return *this; }
             PipelineShaderDesc& setShader(IShader* value) { shader = value; return *this; }
             PipelineShaderDesc& setBindingLayout(IBindingLayout* value) { bindingLayout = value; return *this; }
+
+            friend bool operator==(const PipelineShaderDesc& lhs, const PipelineShaderDesc& rhs)
+            {
+                return lhs.exportName == rhs.exportName
+                       && lhs.shader == rhs.shader
+                       && lhs.bindingLayout == rhs.bindingLayout;
+            }
+
+            friend bool operator!=(const PipelineShaderDesc& lhs, const PipelineShaderDesc& rhs)
+            {
+                return !(lhs == rhs);
+            }
         };
 
         struct PipelineHitGroupDesc
@@ -2472,6 +2514,21 @@ namespace nvrhi
             PipelineHitGroupDesc& setIntersectionShader(IShader* value) { intersectionShader = value; return *this; }
             PipelineHitGroupDesc& setBindingLayout(IBindingLayout* value) { bindingLayout = value; return *this; }
             PipelineHitGroupDesc& setIsProceduralPrimitive(bool value) { isProceduralPrimitive = value; return *this; }
+
+            friend bool operator==(const PipelineHitGroupDesc& lhs, const PipelineHitGroupDesc& rhs)
+            {
+                return lhs.exportName == rhs.exportName
+                       && lhs.closestHitShader == rhs.closestHitShader
+                       && lhs.anyHitShader == rhs.anyHitShader
+                       && lhs.intersectionShader == rhs.intersectionShader
+                       && lhs.bindingLayout == rhs.bindingLayout
+                       && lhs.isProceduralPrimitive == rhs.isProceduralPrimitive;
+            }
+
+            friend bool operator!=(const PipelineHitGroupDesc& lhs, const PipelineHitGroupDesc& rhs)
+            {
+                return !(lhs == rhs);
+            }
         };
 
         struct PipelineDesc
@@ -2489,6 +2546,21 @@ namespace nvrhi
             PipelineDesc& setMaxPayloadSize(uint32_t value) { maxPayloadSize = value; return *this; }
             PipelineDesc& setMaxAttributeSize(uint32_t value) { maxAttributeSize = value; return *this; }
             PipelineDesc& setMaxRecursionDepth(uint32_t value) { maxRecursionDepth = value; return *this; }
+
+            friend bool operator==(const PipelineDesc& lhs, const PipelineDesc& rhs)
+            {
+                return lhs.shaders == rhs.shaders
+                       && lhs.hitGroups == rhs.hitGroups
+                       && lhs.globalBindingLayouts == rhs.globalBindingLayouts
+                       && lhs.maxPayloadSize == rhs.maxPayloadSize
+                       && lhs.maxAttributeSize == rhs.maxAttributeSize
+                       && lhs.maxRecursionDepth == rhs.maxRecursionDepth;
+            }
+
+            friend bool operator!=(const PipelineDesc& lhs, const PipelineDesc& rhs)
+            {
+                return !(lhs == rhs);
+            }
         };
 
         class IPipeline;
@@ -2774,7 +2846,7 @@ namespace nvrhi
         CudaLinearBufferHandle createCudaLinearBuffer(const CudaLinearBufferDesc& d)
         {
             CudaLinearBufferDesc desc = d;
-            CudaLinearBuffer* buffer = new CudaLinearBuffer(desc);
+            detail::CudaLinearBuffer* buffer = new detail::CudaLinearBuffer(desc);
 
             return CudaLinearBufferHandle::Create(buffer);
         }
