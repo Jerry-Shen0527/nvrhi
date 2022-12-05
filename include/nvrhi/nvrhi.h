@@ -819,11 +819,14 @@ namespace nvrhi
         const OptixProgramGroupSingleModule& lhs,
         const OptixProgramGroupSingleModule& rhs);
 
+    bool operator==(const OptixBuiltinISOptions& lhs, const OptixBuiltinISOptions& rhs);
+
     class OptiXModuleDesc
     {
     public:
         OptixModuleCompileOptions module_compile_options;
         OptixPipelineCompileOptions pipeline_compile_options;
+        OptixBuiltinISOptions builtinISOptions;
 
         std::string ptx;
 
@@ -831,6 +834,7 @@ namespace nvrhi
         {
             return lhs.module_compile_options == rhs.module_compile_options
                    && lhs.pipeline_compile_options == rhs.pipeline_compile_options
+                   && lhs.builtinISOptions == rhs.builtinISOptions
                    && lhs.ptx == rhs.ptx;
         }
 
