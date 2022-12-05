@@ -31,6 +31,13 @@
 #include <string>
 #include <vector>
 
+//#ifndef NOMINMAX
+//#define NOMINMAX
+//#endif
+//#include <optix_stubs.h>
+#include <optix.h>
+#include <cuda.h>
+
 
 #define NVRHI_ENUM_CLASS_FLAG_OPERATORS(T) \
     inline T operator | (T a, T b) { return T(uint32_t(a) | uint32_t(b)); } \
@@ -61,6 +68,7 @@
 
 namespace nvrhi
 {
+    class IDevice;
     struct DescriptorTableDesc;
     // Version of the public API provided by NVRHI.
     // Increment this when any changes to the API are made.
@@ -691,12 +699,48 @@ namespace nvrhi
         uint64_t size;
         uint64_t element_size;
 
+        enum class BufferType
+        {
+            Created,
+            CreatedManaged,
+            TextureMapped,
+            BufferMapped
+        } bufferType = BufferType::Created;
+
         friend bool operator==(const CudaLinearBufferDesc& lhs, const CudaLinearBufferDesc& rhs)
         {
-            return lhs.size == rhs.size && lhs.element_size == rhs.element_size;
+            return lhs.size == rhs.size
+                   && lhs.element_size == rhs.element_size
+                   && lhs.bufferType == rhs.bufferType;
         }
 
         friend bool operator!=(const CudaLinearBufferDesc& lhs, const CudaLinearBufferDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
+    };
+
+    struct CudaSurfaceObjectDesc
+    {
+        uint32_t width;
+        uint32_t height;
+        uint64_t element_size;
+
+        enum class SurfaceObjectType
+        {
+            Created,
+            TextureMapped
+        } bufferType = SurfaceObjectType::Created;
+
+        friend bool operator==(const CudaSurfaceObjectDesc& lhs, const CudaSurfaceObjectDesc& rhs)
+        {
+            return lhs.width == rhs.width
+                   && lhs.height == rhs.height
+                   && lhs.element_size == rhs.element_size
+                   && lhs.bufferType == rhs.bufferType;
+        }
+
+        friend bool operator!=(const CudaSurfaceObjectDesc& lhs, const CudaSurfaceObjectDesc& rhs)
         {
             return !(lhs == rhs);
         }
@@ -732,39 +776,151 @@ namespace nvrhi
 
     using BufferHandle = RefCountPtr<IBuffer>;
 
+    struct PtrTranpoline
+    {
+        explicit PtrTranpoline(void* ptr, uint64_t size)
+            : ptr(ptr)
+        {
+        }
+
+        template<typename T>
+        operator T*()
+        {
+            return reinterpret_cast<T*>(ptr);
+        }
+
+    private:
+        void* ptr;
+    };
+
+    class ICudaLinearBuffer : public IResource
+    {
+    public:
+        [[nodiscard]] virtual const CudaLinearBufferDesc& getDesc() const = 0;
+        virtual PtrTranpoline GetGPUAddress() const = 0;
+    };
+
+    using cudaSurfaceObject_t = unsigned long long;
+
+    class ICudaSurfaceObject : public IResource
+    {
+    public:
+        [[nodiscard]] virtual const CudaSurfaceObjectDesc& getDesc() const = 0;
+        virtual cudaSurfaceObject_t GetGPUAddress() const = 0;
+    };
+
+
+    bool operator==(const OptixModuleCompileOptions& lhs, const OptixModuleCompileOptions& rhs);
+    bool operator==(const OptixPipelineCompileOptions& lhs, const OptixPipelineCompileOptions& rhs);
+    bool operator==(const OptixPipelineLinkOptions& lhs, const OptixPipelineLinkOptions& rhs);
+    bool operator==(const OptixProgramGroupDesc& lhs, const OptixProgramGroupDesc& rhs);
+    bool operator==(const OptixProgramGroupOptions& lhs, const OptixProgramGroupOptions& rhs);
+    bool operator==(
+        const OptixProgramGroupSingleModule& lhs,
+        const OptixProgramGroupSingleModule& rhs);
+
+    class OptiXModuleDesc
+    {
+    public:
+        OptixModuleCompileOptions module_compile_options;
+        OptixPipelineCompileOptions pipeline_compile_options;
+
+        std::string ptx;
+
+        friend bool operator==(const OptiXModuleDesc& lhs, const OptiXModuleDesc& rhs)
+        {
+            return lhs.module_compile_options == rhs.module_compile_options
+                   && lhs.pipeline_compile_options == rhs.pipeline_compile_options
+                   && lhs.ptx == rhs.ptx;
+        }
+
+        friend bool operator!=(const OptiXModuleDesc& lhs, const OptiXModuleDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
+    };
+
+
+
+    class OptiXPipelineDesc
+    {
+    public:
+        OptixPipelineCompileOptions pipeline_compile_options;
+        OptixPipelineLinkOptions pipeline_link_options;
+
+        friend bool operator==(const OptiXPipelineDesc& lhs, const OptiXPipelineDesc& rhs)
+        {
+            return lhs.pipeline_compile_options == rhs.pipeline_compile_options
+                   && lhs.pipeline_link_options == rhs.pipeline_link_options;
+        }
+
+        friend bool operator!=(const OptiXPipelineDesc& lhs, const OptiXPipelineDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
+    };
+
+
+
+    class OptiXProgramGroupDesc
+    {
+    public:
+        OptixProgramGroupOptions program_group_options;
+        OptixProgramGroupDesc prog_group_desc;
+
+        friend bool operator==(const OptiXProgramGroupDesc& lhs, const OptiXProgramGroupDesc& rhs)
+        {
+            return lhs.program_group_options == rhs.program_group_options
+                   && lhs.prog_group_desc == rhs.prog_group_desc;
+        }
+
+        friend bool operator!=(const OptiXProgramGroupDesc& lhs, const OptiXProgramGroupDesc& rhs)
+        {
+            return !(lhs == rhs);
+        }
+    };
+
+    class IOptiXProgramGroup : public IResource
+    {
+    public:
+        [[nodiscard]] virtual const OptiXProgramGroupDesc& getDesc() const = 0;
+
+        virtual OptixProgramGroup getProgramGroup() const = 0;
+    };
+
+    class IOptiXModule : public IResource
+    {
+    public:
+        [[nodiscard]] virtual const OptiXModuleDesc& getDesc() const = 0;
+        virtual OptixModule getModule() const = 0;
+    };
+
+
+    class IOptiXPipeline : public IResource
+    {
+    public:
+        [[nodiscard]] virtual const OptiXPipelineDesc& getDesc() const = 0;
+    };
+
+    //////////////////////////////////////////////////////////////////////////
+    // CUDA and OptiX
+    //////////////////////////////////////////////////////////////////////////
+
+    using CudaLinearBufferHandle = RefCountPtr<ICudaLinearBuffer>;
+    using CudaSurfaceObjectHandle = RefCountPtr<ICudaSurfaceObject>;
+    using OptiXModuleHandle = RefCountPtr<IOptiXModule>;
+    using OptiXPipelineHandle = RefCountPtr<IOptiXPipeline>;
+    using OptiXProgramGroupHandle = RefCountPtr<IOptiXProgramGroup>;
+
     namespace detail
     {
-
-        struct PtrTranpoline
-        {
-            explicit PtrTranpoline(void* ptr, uint64_t size) : ptr(ptr)
-            {
-                assert(sizeof(ptr) == size);
-            }
-
-            template<typename T>
-            operator T*()
-            {
-                return ptr;
-            }
-
-           private:
-            void* ptr;
-        };
-
-        class ICudaLinearBuffer : public IResource
-        {
-        public:
-            [[nodiscard]] virtual const CudaLinearBufferDesc& getDesc() const = 0;
-            virtual detail::PtrTranpoline GetGPUAddress() const = 0;
-        };
-
-
         class CudaLinearBuffer : public RefCounter<ICudaLinearBuffer>
         {
         public:
-            CudaLinearBuffer(const CudaLinearBufferDesc& desc);
-
+            CudaLinearBuffer(
+                const CudaLinearBufferDesc& desc,
+                IResource* source_resource,
+                IDevice* device);
             ~CudaLinearBuffer() override;
 
             const CudaLinearBufferDesc& getDesc() const override
@@ -780,11 +936,111 @@ namespace nvrhi
         protected:
             const CudaLinearBufferDesc desc;
             void* data;
+
+            ResourceHandle handle;
         };
+
+
+        class CudaSurfaceObject : public RefCounter<ICudaSurfaceObject>
+        {
+        public:
+            CudaSurfaceObject(
+                const CudaSurfaceObjectDesc& desc,
+                IResource* source_resource,
+                IDevice* device);
+            ~CudaSurfaceObject() override;
+
+            const CudaSurfaceObjectDesc& getDesc() const override
+            {
+                return desc;
+            }
+
+            cudaSurfaceObject_t GetGPUAddress() const override
+            {
+                return surface_obejct;
+            }
+
+        protected:
+            const CudaSurfaceObjectDesc desc;
+            cudaSurfaceObject_t surface_obejct;
+
+            ResourceHandle handle;
+        };
+
+
+        class OptiXModule : public RefCounter<IOptiXModule>
+        {
+        public:
+            explicit OptiXModule(const OptiXModuleDesc& desc, IDevice* device);
+
+            [[nodiscard]] const OptiXModuleDesc& getDesc() const override
+            {
+                return desc;
+            }
+
+            OptixModule getModule() const override
+            {
+                return module;
+            }
+
+        private:
+            OptiXModuleDesc desc;
+            OptixModule module;
+        };
+
+
+        class OptiXProgramGroup : public RefCounter<IOptiXProgramGroup>
+        {
+        public:
+            explicit OptiXProgramGroup(OptiXProgramGroupDesc desc, OptiXModuleHandle module,IDevice* device);
+         explicit OptiXProgramGroup(
+             OptiXProgramGroupDesc desc,
+                std::tuple < OptiXModuleHandle,
+                OptiXModuleHandle,
+                OptiXModuleHandle> modules,
+             IDevice* device);
+
+        private:
+            [[nodiscard]] const OptiXProgramGroupDesc& getDesc() const override
+            {
+                return desc;
+            }
+
+        public:
+            OptixProgramGroup getProgramGroup() const override
+            {
+                return hitgroup_prog_group;
+            }
+
+        private:
+            OptiXProgramGroupDesc desc;
+            OptixProgramGroup hitgroup_prog_group;
+        };
+
+        class OptiXPipeline : public RefCounter<IOptiXPipeline>
+        {
+        public:
+            explicit OptiXPipeline(
+                OptiXPipelineDesc desc,
+                const std::vector<OptiXProgramGroupHandle>& program_groups,
+                IDevice* device);
+
+            [[nodiscard]] const OptiXPipelineDesc& getDesc() const override
+            {
+                return desc;
+            }
+
+        private:
+            OptiXPipelineDesc desc;
+            OptixPipeline pipeline;
+        };
+
+
     } // namespace detail
 
 
-    using CudaLinearBufferHandle = RefCountPtr<detail::ICudaLinearBuffer>;
+
+
 
     //////////////////////////////////////////////////////////////////////////
     // Shader
@@ -2843,13 +3099,7 @@ namespace nvrhi
         virtual void unmapStagingTexture(IStagingTexture* tex) = 0;
 
         virtual BufferHandle createBuffer(const BufferDesc& d) = 0;
-        CudaLinearBufferHandle createCudaLinearBuffer(const CudaLinearBufferDesc& d)
-        {
-            CudaLinearBufferDesc desc = d;
-            detail::CudaLinearBuffer* buffer = new detail::CudaLinearBuffer(desc);
 
-            return CudaLinearBufferHandle::Create(buffer);
-        }
         virtual void *mapBuffer(IBuffer* buffer, CpuAccessMode cpuAccess) = 0;
         virtual void unmapBuffer(IBuffer* buffer) = 0;
         virtual MemoryRequirements getBufferMemoryRequirements(IBuffer* buffer) = 0;
@@ -2939,6 +3189,74 @@ namespace nvrhi
 
         // Cuda related
 
+        CudaLinearBufferHandle createCudaLinearBuffer(
+            const CudaLinearBufferDesc& d,
+            IResource* source = nullptr)
+        {
+            CudaLinearBufferDesc desc = d;
+            auto buffer = new detail::CudaLinearBuffer(desc, source, this);
+
+            return CudaLinearBufferHandle::Create(buffer);
+        }
+
+        CudaSurfaceObjectHandle createCudaSurfaceObject(
+            const CudaSurfaceObjectDesc& d,
+            IResource* source = nullptr)
+        {
+            CudaSurfaceObjectDesc desc = d;
+            auto buffer = new detail::CudaSurfaceObject(desc, source, this);
+
+            return CudaSurfaceObjectHandle::Create(buffer);
+        }
+
+        //Optix related
+        
+        //std::unique_ptr<>
+        CUstream cudaStream;
+        OptixDeviceContext optixContext = nullptr;
+        void OptixPrepare();
+        bool isOptiXInitalized = false;
+
+
+        OptiXModuleHandle createOptiXModule(
+            const OptiXModuleDesc& d)
+        {
+            OptiXModuleDesc desc = d;
+            auto module = new detail::OptiXModule(desc, this);
+
+            return OptiXModuleHandle::Create(module);
+        }
+
+        OptiXPipelineHandle createOptiXPipeline(
+            const OptiXPipelineDesc& d,
+            std::vector<OptiXProgramGroupHandle> program_groups = {})
+        {
+            OptiXPipelineDesc desc = d;
+            auto buffer = new detail::OptiXPipeline(desc, program_groups, this);
+
+            return OptiXPipelineHandle::Create(buffer);
+        }
+
+        OptiXProgramGroupHandle createOptiXProgramGroup(
+            const OptiXProgramGroupDesc& d,
+            OptiXModuleHandle module)
+        {
+            OptiXProgramGroupDesc desc = d;
+            auto buffer = new detail::OptiXProgramGroup(desc, module, this);
+
+            return OptiXProgramGroupHandle::Create(buffer);
+        }
+
+
+        OptiXProgramGroupHandle createOptiXProgramGroup(
+            const OptiXProgramGroupDesc& d,
+            std::tuple<OptiXModuleHandle, OptiXModuleHandle, OptiXModuleHandle> modules)
+        {
+            OptiXProgramGroupDesc desc = d;
+            auto buffer = new detail::OptiXProgramGroup(desc, modules, this);
+
+            return OptiXProgramGroupHandle::Create(buffer);
+        }
     };
 
     typedef RefCountPtr<IDevice> DeviceHandle;
@@ -3060,3 +3378,5 @@ namespace std
         }
     };
 }
+
+
