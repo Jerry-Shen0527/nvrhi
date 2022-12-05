@@ -869,7 +869,7 @@ namespace nvrhi
     class OptiXProgramGroupDesc
     {
     public:
-        OptixProgramGroupOptions program_group_options;
+        OptixProgramGroupOptions program_group_options = {};
         OptixProgramGroupDesc prog_group_desc;
 
         friend bool operator==(const OptiXProgramGroupDesc& lhs, const OptiXProgramGroupDesc& rhs)
