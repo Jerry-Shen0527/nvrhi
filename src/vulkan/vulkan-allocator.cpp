@@ -189,7 +189,7 @@ namespace nvrhi::vulkan
         vulkanExportMemoryAllocateInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
         vulkanExportMemoryAllocateInfoKHR.pNext = &vulkanExportMemoryWin32HandleInfoKHR;
         vulkanExportMemoryAllocateInfoKHR.handleTypes =
-            VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+            VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT;
 
         // allocate memory
         auto allocFlags = vk::MemoryAllocateFlagsInfo();

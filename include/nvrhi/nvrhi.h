@@ -694,10 +694,16 @@ namespace nvrhi
         }
     };
 
+    namespace detail
+    {
+        class CudaLinearBuffer;
+        class CudaSurfaceObject;
+    }
+
     struct CudaLinearBufferDesc
     {
-        uint64_t size;
-        uint64_t element_size;
+        int size;
+        int element_size;
 
         enum class BufferType
         {
@@ -705,45 +711,84 @@ namespace nvrhi
             CreatedManaged,
             TextureMapped,
             BufferMapped
-        } bufferType = BufferType::Created;
+        } bufferType ;
+
+        CudaLinearBufferDesc(
+            int size = 0,
+            int element_size = 0,
+            BufferType buffer_type = BufferType::Created)
+            : size(size),
+              element_size(element_size),
+              bufferType(buffer_type)
+        {
+        }
+
 
         friend bool operator==(const CudaLinearBufferDesc& lhs, const CudaLinearBufferDesc& rhs)
         {
             return lhs.size == rhs.size
                    && lhs.element_size == rhs.element_size
-                   && lhs.bufferType == rhs.bufferType;
+                   && lhs.bufferType == rhs.bufferType
+                   && lhs.mapped_id == rhs.mapped_id;
         }
 
         friend bool operator!=(const CudaLinearBufferDesc& lhs, const CudaLinearBufferDesc& rhs)
         {
             return !(lhs == rhs);
         }
+        friend class detail::CudaLinearBuffer;
+    private:
+        mutable int mapped_id = 0;
+        static int guid;
     };
 
     struct CudaSurfaceObjectDesc
     {
+
+
         uint32_t width;
         uint32_t height;
         uint64_t element_size;
+
+        std::string debugName;
 
         enum class SurfaceObjectType
         {
             Created,
             TextureMapped
-        } bufferType = SurfaceObjectType::Created;
+        } bufferType;
+
+        CudaSurfaceObjectDesc(
+            SurfaceObjectType buffer_type = SurfaceObjectType::Created,
+            uint32_t width = 1,
+            uint32_t height = 1,
+            uint64_t element_size = 1
+            )
+            : width(width),
+              height(height),
+              element_size(element_size),
+              bufferType(buffer_type)
+        {
+        }
 
         friend bool operator==(const CudaSurfaceObjectDesc& lhs, const CudaSurfaceObjectDesc& rhs)
         {
             return lhs.width == rhs.width
                    && lhs.height == rhs.height
                    && lhs.element_size == rhs.element_size
-                   && lhs.bufferType == rhs.bufferType;
+                   && lhs.bufferType == rhs.bufferType
+                   && lhs.mapped_id == rhs.mapped_id;
         }
 
         friend bool operator!=(const CudaSurfaceObjectDesc& lhs, const CudaSurfaceObjectDesc& rhs)
         {
             return !(lhs == rhs);
         }
+
+        friend class detail::CudaSurfaceObject;
+    private:
+        mutable int mapped_id = 0;
+        static int guid;
     };
 
     struct BufferRange
@@ -778,7 +823,7 @@ namespace nvrhi
 
     struct PtrTranpoline
     {
-        explicit PtrTranpoline(void* ptr, uint64_t size)
+        explicit PtrTranpoline(void* ptr)
             : ptr(ptr)
         {
         }
@@ -806,7 +851,7 @@ namespace nvrhi
     {
     public:
         [[nodiscard]] virtual const CudaSurfaceObjectDesc& getDesc() const = 0;
-        virtual cudaSurfaceObject_t GetGPUAddress() const = 0;
+        virtual cudaSurfaceObject_t GetSurfaceObject() const = 0;
     };
 
 
@@ -904,6 +949,7 @@ namespace nvrhi
     {
     public:
         [[nodiscard]] virtual const OptiXPipelineDesc& getDesc() const = 0;
+        virtual OptixPipeline getPipeline() const = 0;
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -922,7 +968,7 @@ namespace nvrhi
         {
         public:
             CudaLinearBuffer(
-                const CudaLinearBufferDesc& desc,
+                const CudaLinearBufferDesc& in_desc,
                 IResource* source_resource,
                 IDevice* device);
             ~CudaLinearBuffer() override;
@@ -934,7 +980,7 @@ namespace nvrhi
 
             PtrTranpoline GetGPUAddress() const override
             {
-                return PtrTranpoline{ data, desc.element_size };
+                return PtrTranpoline{ data };
             }
 
         protected:
@@ -949,7 +995,7 @@ namespace nvrhi
         {
         public:
             CudaSurfaceObject(
-                const CudaSurfaceObjectDesc& desc,
+                const CudaSurfaceObjectDesc& in_desc,
                 IResource* source_resource,
                 IDevice* device);
             ~CudaSurfaceObject() override;
@@ -959,7 +1005,7 @@ namespace nvrhi
                 return desc;
             }
 
-            cudaSurfaceObject_t GetGPUAddress() const override
+            cudaSurfaceObject_t GetSurfaceObject() const override
             {
                 return surface_obejct;
             }
@@ -1032,6 +1078,11 @@ namespace nvrhi
             [[nodiscard]] const OptiXPipelineDesc& getDesc() const override
             {
                 return desc;
+            }
+
+            OptixPipeline getPipeline() const override
+            {
+                return pipeline;
             }
 
         private:
@@ -3197,8 +3248,7 @@ namespace nvrhi
             const CudaLinearBufferDesc& d,
             IResource* source = nullptr)
         {
-            CudaLinearBufferDesc desc = d;
-            auto buffer = new detail::CudaLinearBuffer(desc, source, this);
+            auto buffer = new detail::CudaLinearBuffer(d, source, this);
 
             return CudaLinearBufferHandle::Create(buffer);
         }
@@ -3207,8 +3257,7 @@ namespace nvrhi
             const CudaSurfaceObjectDesc& d,
             IResource* source = nullptr)
         {
-            CudaSurfaceObjectDesc desc = d;
-            auto buffer = new detail::CudaSurfaceObject(desc, source, this);
+            auto buffer = new detail::CudaSurfaceObject(d, source, this);
 
             return CudaSurfaceObjectHandle::Create(buffer);
         }
@@ -3216,10 +3265,6 @@ namespace nvrhi
         //Optix related
         
         //std::unique_ptr<>
-        CUstream cudaStream;
-        OptixDeviceContext optixContext = nullptr;
-        void OptixPrepare();
-        bool isOptiXInitalized = false;
 
 
         OptiXModuleHandle createOptiXModule(
@@ -3261,6 +3306,25 @@ namespace nvrhi
 
             return OptiXProgramGroupHandle::Create(buffer);
         }
+
+        [[nodiscard]] CUstream OptixStream()
+        {
+            OptixPrepare();
+            return optixStream;
+        }
+
+        [[nodiscard]] OptixDeviceContext OptixContext()
+        {
+            OptixPrepare();
+            return optixContext;
+        }
+
+    private:
+        CUstream optixStream;
+        OptixDeviceContext optixContext = nullptr;
+        bool isOptiXInitalized = false;
+        void OptixPrepare();
+
     };
 
     typedef RefCountPtr<IDevice> DeviceHandle;
