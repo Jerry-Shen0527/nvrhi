@@ -310,6 +310,13 @@ namespace nvrhi::vulkan
         Texture *texture = new Texture(m_Context, m_Allocator);
         assert(texture);
         fillTextureInfo(texture, desc);
+        vk::ExternalMemoryImageCreateInfo external_memory_image_create_info;
+        external_memory_image_create_info.handleTypes =
+            vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32Kmt;
+        if (desc.sharedResourceFlags == SharedResourceFlags::Shared)
+        {
+            texture->imageInfo.setPNext(&external_memory_image_create_info);
+        }
 
         vk::Result res = m_Context.device.createImage(&texture->imageInfo, m_Context.allocationCallbacks, &texture->image);
         ASSERT_VK_OK(res);
