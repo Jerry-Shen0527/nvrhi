@@ -316,6 +316,7 @@ namespace nvrhi::vulkan
         if (desc.sharedResourceFlags == SharedResourceFlags::Shared)
         {
             texture->imageInfo.setPNext(&external_memory_image_create_info);
+            desc.mapped_id = desc.guid++;
         }
 
         vk::Result res = m_Context.device.createImage(&texture->imageInfo, m_Context.allocationCallbacks, &texture->image);

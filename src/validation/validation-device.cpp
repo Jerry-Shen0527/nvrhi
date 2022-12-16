@@ -225,12 +225,8 @@ namespace nvrhi::validation
         
         if(anyErrors)
             return nullptr;
-        
-        TextureDesc patchedDesc = d;
-        if (patchedDesc.debugName.empty())
-            patchedDesc.debugName = utils::GenerateTextureDebugName(patchedDesc);
 
-        return m_Device->createTexture(patchedDesc);
+        return m_Device->createTexture(d);
     }
 
     MemoryRequirements DeviceWrapper::getTextureMemoryRequirements(ITexture* texture)

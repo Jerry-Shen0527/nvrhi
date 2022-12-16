@@ -456,7 +456,7 @@ namespace nvrhi
         constexpr TextureDesc& setUseClearValue(bool value) { useClearValue = value; return *this; }
         constexpr TextureDesc& setInitialState(ResourceStates value) { initialState = value; return *this; }
         constexpr TextureDesc& setKeepInitialState(bool value) { keepInitialState = value; return *this; }
-        
+
         friend bool operator==(const TextureDesc& lhs, const TextureDesc& rhs)
         {
             return lhs.width == rhs.width
@@ -476,6 +476,7 @@ namespace nvrhi
                    && lhs.isVirtual == rhs.isVirtual
                    && lhs.clearValue == rhs.clearValue
                    && lhs.useClearValue == rhs.useClearValue
+                   && lhs.mapped_id == rhs.mapped_id
                    && lhs.initialState == rhs.initialState
                    && lhs.keepInitialState == rhs.keepInitialState;
         }
@@ -484,6 +485,9 @@ namespace nvrhi
         {
             return !(lhs == rhs);
         }
+
+        mutable int mapped_id = 0;
+        static int guid;
     };
 
     // describes a 2D section of a single mip level + single slice of a texture
