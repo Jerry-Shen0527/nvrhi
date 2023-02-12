@@ -176,7 +176,8 @@ namespace nvrhi::vulkan
             return vk::Result::eErrorOutOfDeviceMemory;
         }
 
-        //External settings
+// External settings
+#ifdef _WIN64
         VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
         vulkanExportMemoryWin32HandleInfoKHR.sType =
             VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
@@ -190,7 +191,13 @@ namespace nvrhi::vulkan
         vulkanExportMemoryAllocateInfoKHR.pNext = &vulkanExportMemoryWin32HandleInfoKHR;
         vulkanExportMemoryAllocateInfoKHR.handleTypes =
             VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT;
-
+#else
+        VkExportMemoryAllocateInfoKHR vulkanExportMemoryAllocateInfoKHR = {};
+        vulkanExportMemoryAllocateInfoKHR.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+        vulkanExportMemoryAllocateInfoKHR.pNext = NULL;
+        vulkanExportMemoryAllocateInfoKHR.handleTypes =
+            VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+#endif
         // allocate memory
         auto allocFlags = vk::MemoryAllocateFlagsInfo();
         if (enableDeviceAddress)

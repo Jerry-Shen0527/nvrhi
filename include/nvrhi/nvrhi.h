@@ -30,6 +30,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <tuple>
 
 //#ifndef NOMINMAX
 //#define NOMINMAX
