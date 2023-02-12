@@ -261,7 +261,7 @@ namespace nvrhi::d3d12
                         {
                             Buffer* buffer = checked_cast<Buffer*>(binding.resourceHandle);
 
-                            buffer->createCBV(descriptorHandle.ptr);
+                            buffer->createCBV(descriptorHandle.ptr, binding.range);
                             pResource = buffer;
 
                             if(buffer->desc.isVolatile)
@@ -785,7 +785,7 @@ namespace nvrhi::d3d12
         }
         case ResourceType::ConstantBuffer: {
             Buffer* buffer = checked_cast<Buffer*>(binding.resourceHandle);
-            buffer->createCBV(descriptorHandle.ptr);
+            buffer->createCBV(descriptorHandle.ptr, binding.range);
             break;
         }
         case ResourceType::RayTracingAccelStruct: {
@@ -901,7 +901,7 @@ namespace nvrhi::d3d12
                                     continue;
                                 }
 
-                                if (updateThisSet || volatileData != m_CurrentGraphicsVolatileCBs[newVolatileCBs.size()].address)
+                                if (updateThisSet || volatileData != m_CurrentComputeVolatileCBs[newVolatileCBs.size()].address)
                                 {
                                     m_ActiveCommandList->commandList->SetComputeRootConstantBufferView(rootParameterIndex, volatileData);
                                 }

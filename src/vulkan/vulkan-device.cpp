@@ -72,15 +72,18 @@ namespace nvrhi::vulkan
 
         // maps Vulkan extension strings into the corresponding boolean flags in Device
         const std::unordered_map<std::string, bool*> extensionStringMap = {
+            { VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, &m_Context.extensions.KHR_synchronization2 },
             { VK_KHR_MAINTENANCE1_EXTENSION_NAME, &m_Context.extensions.KHR_maintenance1 },
             { VK_EXT_DEBUG_REPORT_EXTENSION_NAME, &m_Context.extensions.EXT_debug_report },
             { VK_EXT_DEBUG_MARKER_EXTENSION_NAME, &m_Context.extensions.EXT_debug_marker },
             { VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, &m_Context.extensions.KHR_acceleration_structure },
-            { VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, &m_Context.extensions.KHR_buffer_device_address },
+            { VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, &m_Context.extensions.buffer_device_address },
             { VK_KHR_RAY_QUERY_EXTENSION_NAME,&m_Context.extensions.KHR_ray_query },
             { VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, &m_Context.extensions.KHR_ray_tracing_pipeline },
             { VK_NV_MESH_SHADER_EXTENSION_NAME, &m_Context.extensions.NV_mesh_shader },
+            { VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME, &m_Context.extensions.EXT_conservative_rasterization},
             { VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, &m_Context.extensions.KHR_fragment_shading_rate },
+            { VK_EXT_OPACITY_MICROMAP_EXTENSION_NAME, &m_Context.extensions.EXT_opacity_micromap },
         };
 
         // parse the extension/layer lists and figure out which extensions are enabled
@@ -102,12 +105,16 @@ namespace nvrhi::vulkan
             }
         }
 
-        // Get the device properties with supported extensions
+        // The Vulkan 1.2 way of enabling bufferDeviceAddress
+        if (desc.bufferDeviceAddressSupported)
+            m_Context.extensions.buffer_device_address = true;
 
         void* pNext = nullptr;
         vk::PhysicalDeviceAccelerationStructurePropertiesKHR accelStructProperties;
         vk::PhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties;
+        vk::PhysicalDeviceConservativeRasterizationPropertiesEXT conservativeRasterizationProperties;
         vk::PhysicalDeviceFragmentShadingRatePropertiesKHR shadingRateProperties;
+        vk::PhysicalDeviceOpacityMicromapPropertiesEXT opacityMicromapProperties;
         vk::PhysicalDeviceProperties2 deviceProperties2;
 
         if (m_Context.extensions.KHR_acceleration_structure)
@@ -128,6 +135,18 @@ namespace nvrhi::vulkan
             pNext = &shadingRateProperties;
         }
 
+        if (m_Context.extensions.EXT_conservative_rasterization)
+        {
+            conservativeRasterizationProperties.pNext = pNext;
+            pNext = &conservativeRasterizationProperties;
+        }
+
+        if (m_Context.extensions.EXT_opacity_micromap)
+        {
+            opacityMicromapProperties.pNext = pNext;
+            pNext = &opacityMicromapProperties;
+        }
+
         deviceProperties2.pNext = pNext;
 
         m_Context.physicalDevice.getProperties2(&deviceProperties2);
@@ -135,8 +154,16 @@ namespace nvrhi::vulkan
         m_Context.physicalDeviceProperties = deviceProperties2.properties;
         m_Context.accelStructProperties = accelStructProperties;
         m_Context.rayTracingPipelineProperties = rayTracingPipelineProperties;
+        m_Context.conservativeRasterizationProperties = conservativeRasterizationProperties;
         m_Context.shadingRateProperties = shadingRateProperties;
+        m_Context.opacityMicromapProperties = opacityMicromapProperties;
         m_Context.messageCallback = desc.errorCB;
+
+        if (m_Context.extensions.EXT_opacity_micromap && !m_Context.extensions.KHR_synchronization2)
+        {
+            m_Context.warning(
+                "EXT_opacity_micromap is used without KHR_synchronization2 which is nessesary for OMM Array state transitions. Feature::RayTracingOpacityMicromap will be disabled.");
+        }
 
         if (m_Context.extensions.KHR_fragment_shading_rate)
         {
@@ -155,6 +182,11 @@ namespace nvrhi::vulkan
             m_Context.rtxMemUtil->Initialize(8388608);
 
             m_Context.rtxMuResources = std::make_unique<RtxMuResources>();
+        }
+
+        if (m_Context.extensions.EXT_opacity_micromap)
+        {
+            m_Context.warning("Opacity micro-maps are not currently supported by RTXMU.");
         }
 #endif
         auto pipelineInfo = vk::PipelineCacheCreateInfo();
@@ -231,6 +263,12 @@ namespace nvrhi::vulkan
             return m_Context.extensions.KHR_acceleration_structure;
         case Feature::RayTracingPipeline:
             return m_Context.extensions.KHR_ray_tracing_pipeline;
+        case Feature::RayTracingOpacityMicromap:
+#ifdef NVRHI_WITH_RTXMU
+            return false; // RTXMU does not support OMMs
+#else
+            return m_Context.extensions.EXT_opacity_micromap && m_Context.extensions.KHR_synchronization2;
+#endif
         case Feature::RayQuery:
             return m_Context.extensions.KHR_ray_query;
         case Feature::ShaderSpecializations:
@@ -250,12 +288,16 @@ namespace nvrhi::vulkan
                     utils::NotSupported();
             }
             return m_Context.extensions.KHR_fragment_shading_rate && m_Context.shadingRateFeatures.attachmentFragmentShadingRate;
+        case Feature::ConservativeRasterization:
+            return m_Context.extensions.EXT_conservative_rasterization;
         case Feature::VirtualResources:
             return true;
         case Feature::ComputeQueue:
             return (m_Queues[uint32_t(CommandQueue::Compute)] != nullptr);
         case Feature::CopyQueue:
             return (m_Queues[uint32_t(CommandQueue::Copy)] != nullptr);
+        case Feature::ConstantBufferRanges:
+            return true;
         default:
             return false;
         }
@@ -381,7 +423,10 @@ namespace nvrhi::vulkan
         heap->desc = d;
         heap->managed = true;
 
-        const vk::Result res = m_Allocator.allocateMemory(heap, memoryRequirements, memoryPropertyFlags);
+        // Set the Device Address bit if that feature is supported, because the heap might be used to store acceleration structures
+        const bool enableDeviceAddress = m_Context.extensions.buffer_device_address;
+
+        const vk::Result res = m_Allocator.allocateMemory(heap, memoryRequirements, memoryPropertyFlags, enableDeviceAddress);
 
         if (res != vk::Result::eSuccess)
         {
@@ -428,6 +473,11 @@ namespace nvrhi::vulkan
     void VulkanContext::error(const std::string& message) const
     {
         messageCallback->message(MessageSeverity::Error, message.c_str());
+    }
+
+    void VulkanContext::warning(const std::string& message) const
+    {
+        messageCallback->message(MessageSeverity::Warning, message.c_str());
     }
 
 } // namespace nvrhi::vulkan

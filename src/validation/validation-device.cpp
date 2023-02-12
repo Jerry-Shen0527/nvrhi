@@ -592,13 +592,13 @@ namespace nvrhi::validation
             case ResourceType::StructuredBuffer_SRV:
             case ResourceType::RawBuffer_SRV:
             case ResourceType::RayTracingAccelStruct:
-                if (bindingSet.SRV[item.slot])
+                if (bindingSet.SRV.get(item.slot))
                 {
-                    duplicates.SRV[item.slot] = true;
+                    duplicates.SRV.set(item.slot, true);
                 }
                 else
                 {
-                    bindingSet.SRV[item.slot] = true;
+                    bindingSet.SRV.set(item.slot, true);
                     bindingSet.rangeSRV.add(item.slot);
                 }
                 break;
@@ -607,13 +607,13 @@ namespace nvrhi::validation
             case ResourceType::TypedBuffer_UAV:
             case ResourceType::StructuredBuffer_UAV:
             case ResourceType::RawBuffer_UAV:
-                if (bindingSet.UAV[item.slot])
+                if (bindingSet.UAV.get(item.slot))
                 {
-                    duplicates.UAV[item.slot] = true;
+                    duplicates.UAV.set(item.slot, true);
                 }
                 else
                 {
-                    bindingSet.UAV[item.slot] = true;
+                    bindingSet.UAV.set(item.slot, true);
                     bindingSet.rangeUAV.add(item.slot);
                 }
                 break;
@@ -621,13 +621,13 @@ namespace nvrhi::validation
             case ResourceType::ConstantBuffer:
             case ResourceType::VolatileConstantBuffer:
             case ResourceType::PushConstants:
-                if (bindingSet.CB[item.slot])
+                if (bindingSet.CB.get(item.slot))
                 {
-                    duplicates.CB[item.slot] = true;
+                    duplicates.CB.set(item.slot, true);
                 }
                 else
                 {
-                    bindingSet.CB[item.slot] = true;
+                    bindingSet.CB.set(item.slot, true);
 
                     if (item.type == ResourceType::VolatileConstantBuffer)
                         ++bindingSet.numVolatileCBs;
@@ -637,13 +637,13 @@ namespace nvrhi::validation
                 break;
 
             case ResourceType::Sampler:
-                if (bindingSet.Sampler[item.slot])
+                if (bindingSet.Sampler.get(item.slot))
                 {
-                    duplicates.Sampler[item.slot] = true;
+                    duplicates.Sampler.set(item.slot, true);
                 }
                 else
                 {
-                    bindingSet.Sampler[item.slot] = true;
+                    bindingSet.Sampler.set(item.slot, true);
                     bindingSet.rangeSampler.add(item.slot);
                 }
                 break;
@@ -659,22 +659,15 @@ namespace nvrhi::validation
             }
         }
     }
-
-    template<size_t N>
-    void BitsetToStream(const std::bitset<N>& bits, std::ostream& os, const char* prefix, bool &first)
+    
+    void BitsetToStream(const sparse_bitset& bits, std::ostream& os, const char* prefix, bool &first)
     {
-        if (bits.any())
+        for (uint32_t slot : bits)
         {
-            for (uint32_t slot = 0; slot < bits.size(); slot++)
-            {
-                if (bits[slot])
-                {
-                    if (!first)
-                        os << ", ";
-                    os << prefix << slot;
-                    first = false;
-                }
-            }
+            if (!first)
+                os << ", ";
+            os << prefix << slot;
+            first = false;
         }
     }
 
@@ -822,15 +815,15 @@ namespace nvrhi::validation
 
                 for (int layoutIndex = 1; layoutIndex < numBindingLayouts; layoutIndex++)
                 {
-                    duplicates.SRV |= bindings.SRV & bindingsPerLayout[layoutIndex].SRV;
+                    duplicates.SRV     |= bindings.SRV     & bindingsPerLayout[layoutIndex].SRV;
                     duplicates.Sampler |= bindings.Sampler & bindingsPerLayout[layoutIndex].Sampler;
-                    duplicates.UAV |= bindings.UAV & bindingsPerLayout[layoutIndex].UAV;
-                    duplicates.CB |= bindings.CB & bindingsPerLayout[layoutIndex].CB;
+                    duplicates.UAV     |= bindings.UAV     & bindingsPerLayout[layoutIndex].UAV;
+                    duplicates.CB      |= bindings.CB      & bindingsPerLayout[layoutIndex].CB;
 
-                    bindings.SRV |= bindingsPerLayout[layoutIndex].SRV;
-                    bindings.Sampler |= bindingsPerLayout[layoutIndex].Sampler;
-                    bindings.UAV |= bindingsPerLayout[layoutIndex].UAV;
-                    bindings.CB |= bindingsPerLayout[layoutIndex].CB;
+                    bindings.SRV       |= bindingsPerLayout[layoutIndex].SRV;
+                    bindings.Sampler   |= bindingsPerLayout[layoutIndex].Sampler;
+                    bindings.UAV       |= bindingsPerLayout[layoutIndex].UAV;
+                    bindings.CB        |= bindingsPerLayout[layoutIndex].CB;
                 }
 
                 if (duplicates.any())
@@ -998,6 +991,12 @@ namespace nvrhi::validation
                 warning("The depth-stencil state indicates read-only depth and stencil, "
                     "but the framebuffer has a read-write depth attachment, which is suboptimal.");
             }
+        }
+
+        if (renderState.rasterState.conservativeRasterEnable && !m_Device->queryFeatureSupport(Feature::ConservativeRasterization))
+        {
+            warning("Conservative rasterization is not supported on this device");
+            return false;
         }
 
         return true;
@@ -1249,7 +1248,7 @@ namespace nvrhi::validation
         return false;
     }
 
-    bool DeviceWrapper::validateBindingSetItem(const BindingSetItem& binding, bool isDescriptorTable, std::stringstream& errorStream) const
+    bool DeviceWrapper::validateBindingSetItem(const BindingSetItem& binding, bool isDescriptorTable, std::stringstream& errorStream)
     {
         switch (binding.type)
         {
@@ -1399,6 +1398,38 @@ namespace nvrhi::validation
                 return false;
             }
 
+            if (binding.type == ResourceType::ConstantBuffer && !binding.range.isEntireBuffer(desc))
+            {
+                if (!queryFeatureSupport(Feature::ConstantBufferRanges))
+                {
+                    errorStream << "Partial binding of constant buffers is not supported by the device (used for " << utils::DebugNameToString(desc.debugName) << ")";
+                    return false;
+                }
+
+                const BufferRange range = binding.range.resolve(desc);
+                if ((range.byteOffset % c_ConstantBufferOffsetSizeAlignment) != 0)
+                {
+                    errorStream << "Constant buffer offsets must be a multiple of " << c_ConstantBufferOffsetSizeAlignment << " bytes. Buffer "
+                        << utils::DebugNameToString(desc.debugName) << " is bound with effective byteOffset = " << range.byteOffset << ".";
+                    return false;
+                }
+
+                if (range.byteSize == 0 || (range.byteSize % c_ConstantBufferOffsetSizeAlignment) != 0)
+                {
+                    errorStream << "Constant buffer bindings must have nonzero byteSize that is a multiple of " << c_ConstantBufferOffsetSizeAlignment << " bytes. Buffer "
+                        << utils::DebugNameToString(desc.debugName) << " is bound with effective byteSize = " << range.byteSize << ".";
+                    return false;
+                }
+            }
+
+            if (binding.type == ResourceType::VolatileConstantBuffer && !binding.range.isEntireBuffer(desc))
+            {
+                const BufferRange range = binding.range.resolve(desc);
+                errorStream << "Volatile constant buffers cannot be partially bound. Buffer " << utils::DebugNameToString(desc.debugName)
+                    << " is bound with effective byteOffset = " << range.byteOffset << ", byteSize = " << range.byteSize << ".";
+                return false;
+            }
+
             break;
         }
 
@@ -1476,15 +1507,15 @@ namespace nvrhi::validation
         ShaderBindingSet declaredNotBound;
         ShaderBindingSet boundNotDeclared;
 
-        declaredNotBound.SRV = layoutBindings.SRV & ~setBindings.SRV;
-        declaredNotBound.Sampler = layoutBindings.Sampler & ~setBindings.Sampler;
-        declaredNotBound.UAV = layoutBindings.UAV & ~setBindings.UAV;
-        declaredNotBound.CB = layoutBindings.CB & ~setBindings.CB;
+        declaredNotBound.SRV     = layoutBindings.SRV     - setBindings.SRV;
+        declaredNotBound.Sampler = layoutBindings.Sampler - setBindings.Sampler;
+        declaredNotBound.UAV     = layoutBindings.UAV     - setBindings.UAV;
+        declaredNotBound.CB      = layoutBindings.CB      - setBindings.CB;
 
-        boundNotDeclared.SRV = ~layoutBindings.SRV & setBindings.SRV;
-        boundNotDeclared.Sampler = ~layoutBindings.Sampler & setBindings.Sampler;
-        boundNotDeclared.UAV = ~layoutBindings.UAV & setBindings.UAV;
-        boundNotDeclared.CB = ~layoutBindings.CB & setBindings.CB;
+        boundNotDeclared.SRV     = setBindings.SRV        - layoutBindings.SRV;
+        boundNotDeclared.Sampler = setBindings.Sampler    - layoutBindings.Sampler;
+        boundNotDeclared.UAV     = setBindings.UAV        - layoutBindings.UAV;
+        boundNotDeclared.CB      = setBindings.CB         - layoutBindings.CB;
 
         if (declaredNotBound.any())
         {
@@ -1577,6 +1608,29 @@ namespace nvrhi::validation
         patchedItem.resourceHandle = unwrapResource(patchedItem.resourceHandle);
 
         return m_Device->writeDescriptorTable(descriptorTable, patchedItem);
+    }
+
+    rt::OpacityMicromapHandle DeviceWrapper::createOpacityMicromap(const rt::OpacityMicromapDesc& desc)
+    {
+        if (desc.inputBuffer == nullptr)
+        {
+            error("OpacityMicromapDesc:inputBuffer is nullptr");
+            return nullptr;
+        }
+
+        if (desc.perOmmDescs == nullptr)
+        {
+            error("OpacityMicromapDesc:perOmmDescs is nullptr");
+            return nullptr;
+        }
+
+        rt::OpacityMicromapHandle omm = m_Device->createOpacityMicromap(desc);
+        if (!omm)
+        {
+            error("createOpacityMicromap returned nullptr");
+            return nullptr;
+        }
+        return omm;
     }
 
     rt::AccelStructHandle DeviceWrapper::createAccelStruct(const rt::AccelStructDesc& desc)

@@ -206,7 +206,7 @@ namespace nvrhi::d3d12
     {
         Framebuffer *fb = new Framebuffer(m_Resources);
         fb->desc = desc;
-        fb->framebufferInfo = FramebufferInfo(desc);
+        fb->framebufferInfo = FramebufferInfoEx(desc);
 
         if (!desc.colorAttachments.empty())
         {
@@ -538,17 +538,27 @@ namespace nvrhi::d3d12
         m_ActiveCommandList->commandList->DrawIndexedInstanced(args.vertexCount, args.instanceCount, args.startIndexLocation, args.startVertexLocation, args.startInstanceLocation);
     }
 
-    void CommandList::drawIndirect(uint32_t offsetBytes)
+    void CommandList::drawIndirect(uint32_t offsetBytes, uint32_t drawCount)
     {
         Buffer* indirectParams = checked_cast<Buffer*>(m_CurrentGraphicsState.indirectParams);
         assert(indirectParams); // validation layer handles this
 
         updateGraphicsVolatileBuffers();
 
-        m_ActiveCommandList->commandList->ExecuteIndirect(m_Context.drawIndirectSignature, 1, indirectParams->resource, offsetBytes, nullptr, 0);
+        m_ActiveCommandList->commandList->ExecuteIndirect(m_Context.drawIndirectSignature, drawCount, indirectParams->resource, offsetBytes, nullptr, 0);
+    }
+
+    void CommandList::drawIndexedIndirect(uint32_t offsetBytes, uint32_t drawCount)
+    {
+        Buffer* indirectParams = checked_cast<Buffer*>(m_CurrentGraphicsState.indirectParams);
+        assert(indirectParams);
+
+        updateGraphicsVolatileBuffers();
+
+        m_ActiveCommandList->commandList->ExecuteIndirect(m_Context.drawIndexedIndirectSignature, drawCount, indirectParams->resource, offsetBytes, nullptr, 0);
     }
     
-    DX12_ViewportState convertViewportState(const RasterState& rasterState, const FramebufferInfo& framebufferInfo, const ViewportState& vpState)
+    DX12_ViewportState convertViewportState(const RasterState& rasterState, const FramebufferInfoEx& framebufferInfo, const ViewportState& vpState)
     {
         DX12_ViewportState ret;
 
