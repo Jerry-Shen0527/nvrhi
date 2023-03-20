@@ -73,7 +73,7 @@ namespace nvrhi
     struct DescriptorTableDesc;
     // Version of the public API provided by NVRHI.
     // Increment this when any changes to the API are made.
-    static constexpr uint32_t c_HeaderVersion = 10;
+    static constexpr uint32_t c_HeaderVersion = 11;
 
     // Verifies that the version of the implementation matches the version of the header.
     // Returns true if they match. Use this when initializing apps using NVRHI as a shared library.
@@ -635,6 +635,7 @@ namespace nvrhi
         bool isDrawIndirectArgs = false;
         bool isAccelStructBuildInput = false;
         bool isAccelStructStorage = false;
+        bool isShaderBindingTable = false;
 
         // A dynamic/upload buffer whose contents only live in the current command list
         bool isVolatile = false;
@@ -667,6 +668,7 @@ namespace nvrhi
         constexpr BufferDesc& setIsDrawIndirectArgs(bool value) { isDrawIndirectArgs = value; return *this; }
         constexpr BufferDesc& setIsAccelStructBuildInput(bool value) { isAccelStructBuildInput = value; return *this; }
         constexpr BufferDesc& setIsAccelStructStorage(bool value) { isAccelStructStorage = value; return *this; }
+        constexpr BufferDesc& setIsShaderBindingTable(bool value) { isShaderBindingTable = value; return *this; }
         constexpr BufferDesc& setIsVolatile(bool value) { isVolatile = value; return *this; }
         constexpr BufferDesc& setIsVirtual(bool value) { isVirtual = value; return *this; }
         constexpr BufferDesc& setInitialState(ResourceStates value) { initialState = value; return *this; }
@@ -2990,6 +2992,7 @@ namespace nvrhi
             uint32_t maxPayloadSize = 0;
             uint32_t maxAttributeSize = sizeof(float) * 2; // typical case: float2 uv;
             uint32_t maxRecursionDepth = 1;
+            int32_t hlslExtensionsUAV = -1;
 
             PipelineDesc& addShader(const PipelineShaderDesc& value) { shaders.push_back(value); return *this; }
             PipelineDesc& addHitGroup(const PipelineHitGroupDesc& value) { hitGroups.push_back(value); return *this; }
@@ -2997,21 +3000,6 @@ namespace nvrhi
             PipelineDesc& setMaxPayloadSize(uint32_t value) { maxPayloadSize = value; return *this; }
             PipelineDesc& setMaxAttributeSize(uint32_t value) { maxAttributeSize = value; return *this; }
             PipelineDesc& setMaxRecursionDepth(uint32_t value) { maxRecursionDepth = value; return *this; }
-
-            friend bool operator==(const PipelineDesc& lhs, const PipelineDesc& rhs)
-            {
-                return lhs.shaders == rhs.shaders
-                       && lhs.hitGroups == rhs.hitGroups
-                       && lhs.globalBindingLayouts == rhs.globalBindingLayouts
-                       && lhs.maxPayloadSize == rhs.maxPayloadSize
-                       && lhs.maxAttributeSize == rhs.maxAttributeSize
-                       && lhs.maxRecursionDepth == rhs.maxRecursionDepth;
-            }
-
-            friend bool operator!=(const PipelineDesc& lhs, const PipelineDesc& rhs)
-            {
-                return !(lhs == rhs);
-            }
         };
 
         class IPipeline;
@@ -3075,6 +3063,7 @@ namespace nvrhi
         RayTracingPipeline,
         RayTracingOpacityMicromap,
         RayQuery,
+        ShaderExecutionReordering,
         FastGeometryShader,
         Meshlets,
         ConservativeRasterization,
