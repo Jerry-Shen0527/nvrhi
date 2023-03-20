@@ -32,10 +32,6 @@
 #include <vector>
 #include <tuple>
 
-//#ifndef NOMINMAX
-//#define NOMINMAX
-//#endif
-//#include <optix_stubs.h>
 #include <optix.h>
 #include <cuda.h>
 
@@ -461,35 +457,6 @@ namespace nvrhi
         constexpr TextureDesc& setInitialState(ResourceStates value) { initialState = value; return *this; }
         constexpr TextureDesc& setKeepInitialState(bool value) { keepInitialState = value; return *this; }
 
-        friend bool operator==(const TextureDesc& lhs, const TextureDesc& rhs)
-        {
-            return lhs.width == rhs.width
-                   && lhs.height == rhs.height
-                   && lhs.depth == rhs.depth
-                   && lhs.arraySize == rhs.arraySize
-                   && lhs.mipLevels == rhs.mipLevels
-                   && lhs.sampleCount == rhs.sampleCount
-                   && lhs.sampleQuality == rhs.sampleQuality
-                   && lhs.format == rhs.format
-                   && lhs.dimension == rhs.dimension
-                   && lhs.isRenderTarget == rhs.isRenderTarget
-                   && lhs.isUAV == rhs.isUAV
-                   && lhs.isTypeless == rhs.isTypeless
-                   && lhs.isShadingRateSurface == rhs.isShadingRateSurface
-                   && lhs.sharedResourceFlags == rhs.sharedResourceFlags
-                   && lhs.isVirtual == rhs.isVirtual
-                   && lhs.clearValue == rhs.clearValue
-                   && lhs.useClearValue == rhs.useClearValue
-                   && lhs.mapped_id == rhs.mapped_id
-                   && lhs.initialState == rhs.initialState
-                   && lhs.keepInitialState == rhs.keepInitialState;
-        }
-
-        friend bool operator!=(const TextureDesc& lhs, const TextureDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
-
         mutable int mapped_id = 0;
         static int guid;
     };
@@ -675,33 +642,6 @@ namespace nvrhi
         constexpr BufferDesc& setKeepInitialState(bool value) { keepInitialState = value; return *this; }
         constexpr BufferDesc& setCpuAccess(CpuAccessMode value) { cpuAccess = value; return *this; }
 
-        friend bool operator==(const BufferDesc& lhs, const BufferDesc& rhs)
-        {
-            return lhs.byteSize == rhs.byteSize
-                   && lhs.structStride == rhs.structStride
-                   && lhs.maxVersions == rhs.maxVersions
-                   && lhs.format == rhs.format
-                   && lhs.canHaveUAVs == rhs.canHaveUAVs
-                   && lhs.canHaveTypedViews == rhs.canHaveTypedViews
-                   && lhs.canHaveRawViews == rhs.canHaveRawViews
-                   && lhs.isVertexBuffer == rhs.isVertexBuffer
-                   && lhs.isIndexBuffer == rhs.isIndexBuffer
-                   && lhs.isConstantBuffer == rhs.isConstantBuffer
-                   && lhs.isDrawIndirectArgs == rhs.isDrawIndirectArgs
-                   && lhs.isAccelStructBuildInput == rhs.isAccelStructBuildInput
-                   && lhs.isAccelStructStorage == rhs.isAccelStructStorage
-                   && lhs.isVolatile == rhs.isVolatile
-                   && lhs.isVirtual == rhs.isVirtual
-                   && lhs.initialState == rhs.initialState
-                   && lhs.keepInitialState == rhs.keepInitialState
-                   && lhs.cpuAccess == rhs.cpuAccess
-                   && lhs.sharedResourceFlags == rhs.sharedResourceFlags;
-        }
-
-        friend bool operator!=(const BufferDesc& lhs, const BufferDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     namespace detail
@@ -733,29 +673,14 @@ namespace nvrhi
         {
         }
 
-
-        friend bool operator==(const CudaLinearBufferDesc& lhs, const CudaLinearBufferDesc& rhs)
-        {
-            return lhs.size == rhs.size
-                   && lhs.element_size == rhs.element_size
-                   && lhs.bufferType == rhs.bufferType
-                   && lhs.mapped_id == rhs.mapped_id;
-        }
-
-        friend bool operator!=(const CudaLinearBufferDesc& lhs, const CudaLinearBufferDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
         friend class detail::CudaLinearBuffer;
-    private:
         mutable int mapped_id = 0;
+    private:
         static int guid;
     };
 
     struct CudaSurfaceObjectDesc
     {
-
-
         uint32_t width;
         uint32_t height;
         uint64_t element_size;
@@ -781,23 +706,10 @@ namespace nvrhi
         {
         }
 
-        friend bool operator==(const CudaSurfaceObjectDesc& lhs, const CudaSurfaceObjectDesc& rhs)
-        {
-            return lhs.width == rhs.width
-                   && lhs.height == rhs.height
-                   && lhs.element_size == rhs.element_size
-                   && lhs.bufferType == rhs.bufferType
-                   && lhs.mapped_id == rhs.mapped_id;
-        }
-
-        friend bool operator!=(const CudaSurfaceObjectDesc& lhs, const CudaSurfaceObjectDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
-
         friend class detail::CudaSurfaceObject;
-    private:
         mutable int mapped_id = 0;
+
+    private:
         static int guid;
     };
 
@@ -864,18 +776,6 @@ namespace nvrhi
         virtual cudaSurfaceObject_t GetSurfaceObject() const = 0;
     };
 
-
-    bool operator==(const OptixModuleCompileOptions& lhs, const OptixModuleCompileOptions& rhs);
-    bool operator==(const OptixPipelineCompileOptions& lhs, const OptixPipelineCompileOptions& rhs);
-    bool operator==(const OptixPipelineLinkOptions& lhs, const OptixPipelineLinkOptions& rhs);
-    bool operator==(const OptixProgramGroupDesc& lhs, const OptixProgramGroupDesc& rhs);
-    bool operator==(const OptixProgramGroupOptions& lhs, const OptixProgramGroupOptions& rhs);
-    bool operator==(
-        const OptixProgramGroupSingleModule& lhs,
-        const OptixProgramGroupSingleModule& rhs);
-
-    bool operator==(const OptixBuiltinISOptions& lhs, const OptixBuiltinISOptions& rhs);
-
     class OptiXModuleDesc
     {
     public:
@@ -884,21 +784,7 @@ namespace nvrhi
         OptixBuiltinISOptions builtinISOptions;
 
         std::string ptx;
-
-        friend bool operator==(const OptiXModuleDesc& lhs, const OptiXModuleDesc& rhs)
-        {
-            return lhs.module_compile_options == rhs.module_compile_options
-                   && lhs.pipeline_compile_options == rhs.pipeline_compile_options
-                   && lhs.builtinISOptions == rhs.builtinISOptions
-                   && lhs.ptx == rhs.ptx;
-        }
-
-        friend bool operator!=(const OptiXModuleDesc& lhs, const OptiXModuleDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
-
 
 
     class OptiXPipelineDesc
@@ -907,16 +793,6 @@ namespace nvrhi
         OptixPipelineCompileOptions pipeline_compile_options;
         OptixPipelineLinkOptions pipeline_link_options;
 
-        friend bool operator==(const OptiXPipelineDesc& lhs, const OptiXPipelineDesc& rhs)
-        {
-            return lhs.pipeline_compile_options == rhs.pipeline_compile_options
-                   && lhs.pipeline_link_options == rhs.pipeline_link_options;
-        }
-
-        friend bool operator!=(const OptiXPipelineDesc& lhs, const OptiXPipelineDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
 
@@ -927,16 +803,7 @@ namespace nvrhi
         OptixProgramGroupOptions program_group_options = {};
         OptixProgramGroupDesc prog_group_desc;
 
-        friend bool operator==(const OptiXProgramGroupDesc& lhs, const OptiXProgramGroupDesc& rhs)
-        {
-            return lhs.program_group_options == rhs.program_group_options
-                   && lhs.prog_group_desc == rhs.prog_group_desc;
-        }
 
-        friend bool operator!=(const OptiXProgramGroupDesc& lhs, const OptiXProgramGroupDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     class IOptiXProgramGroup : public IResource
@@ -1446,28 +1313,6 @@ namespace nvrhi
         constexpr RasterState& disableQuadFill() { quadFillEnable = false; return *this; }
         constexpr RasterState& setSamplePositions(const char* x, const char* y, int count) { for (int i = 0; i < count; i++) { samplePositionsX[i] = x[i]; samplePositionsY[i] = y[i]; } return *this; }
 
-        friend bool operator==(const RasterState& lhs, const RasterState& rhs)
-        {
-            return lhs.fillMode == rhs.fillMode
-                   && lhs.cullMode == rhs.cullMode
-                   && lhs.frontCounterClockwise == rhs.frontCounterClockwise
-                   && lhs.depthClipEnable == rhs.depthClipEnable
-                   && lhs.scissorEnable == rhs.scissorEnable
-                   && lhs.multisampleEnable == rhs.multisampleEnable
-                   && lhs.antialiasedLineEnable == rhs.antialiasedLineEnable
-                   && lhs.depthBias == rhs.depthBias
-                   && lhs.depthBiasClamp == rhs.depthBiasClamp
-                   && lhs.slopeScaledDepthBias == rhs.slopeScaledDepthBias
-                   && lhs.forcedSampleCount == rhs.forcedSampleCount
-                   && lhs.programmableSamplePositionsEnable == rhs.programmableSamplePositionsEnable
-                   && lhs.conservativeRasterEnable == rhs.conservativeRasterEnable
-                   && lhs.quadFillEnable == rhs.quadFillEnable;
-        }
-
-        friend bool operator!=(const RasterState& lhs, const RasterState& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -1511,19 +1356,6 @@ namespace nvrhi
             constexpr StencilOpDesc& setDepthFailOp(StencilOp value) { depthFailOp = value; return *this; }
             constexpr StencilOpDesc& setPassOp(StencilOp value) { passOp = value; return *this; }
             constexpr StencilOpDesc& setStencilFunc(ComparisonFunc value) { stencilFunc = value; return *this; }
-
-            friend bool operator==(const StencilOpDesc& lhs, const StencilOpDesc& rhs)
-            {
-                return lhs.failOp == rhs.failOp
-                       && lhs.depthFailOp == rhs.depthFailOp
-                       && lhs.passOp == rhs.passOp
-                       && lhs.stencilFunc == rhs.stencilFunc;
-            }
-
-            friend bool operator!=(const StencilOpDesc& lhs, const StencilOpDesc& rhs)
-            {
-                return !(lhs == rhs);
-            }
         };
 
         bool            depthTestEnable = true;
@@ -1553,23 +1385,6 @@ namespace nvrhi
         constexpr DepthStencilState& setBackFaceStencil(const StencilOpDesc& value) { backFaceStencil = value; return *this; }
 
 
-        friend bool operator==(const DepthStencilState& lhs, const DepthStencilState& rhs)
-        {
-            return lhs.depthTestEnable == rhs.depthTestEnable
-                   && lhs.depthWriteEnable == rhs.depthWriteEnable
-                   && lhs.depthFunc == rhs.depthFunc
-                   && lhs.stencilEnable == rhs.stencilEnable
-                   && lhs.stencilReadMask == rhs.stencilReadMask
-                   && lhs.stencilWriteMask == rhs.stencilWriteMask
-                   && lhs.stencilRefValue == rhs.stencilRefValue
-                   && lhs.frontFaceStencil == rhs.frontFaceStencil
-                   && lhs.backFaceStencil == rhs.backFaceStencil;
-        }
-
-        friend bool operator!=(const DepthStencilState& lhs, const DepthStencilState& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     //////////////////////////////////////////////////////////////////////////
@@ -1646,24 +1461,6 @@ namespace nvrhi
         SamplerDesc& setAllAddressModes(SamplerAddressMode mode) { addressU = addressV = addressW = mode; return *this; }
         SamplerDesc& setReductionType(SamplerReductionType type) { reductionType = type; return *this; }
 
-        friend bool operator==(const SamplerDesc& lhs, const SamplerDesc& rhs)
-        {
-            return lhs.borderColor == rhs.borderColor
-                   && lhs.maxAnisotropy == rhs.maxAnisotropy
-                   && lhs.mipBias == rhs.mipBias
-                   && lhs.minFilter == rhs.minFilter
-                   && lhs.magFilter == rhs.magFilter
-                   && lhs.mipFilter == rhs.mipFilter
-                   && lhs.addressU == rhs.addressU
-                   && lhs.addressV == rhs.addressV
-                   && lhs.addressW == rhs.addressW
-                   && lhs.reductionType == rhs.reductionType;
-        }
-
-        friend bool operator!=(const SamplerDesc& lhs, const SamplerDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     class ISampler : public IResource 
@@ -1695,18 +1492,7 @@ namespace nvrhi
 
         [[nodiscard]] bool valid() const { return texture != nullptr; }
 
-        friend bool operator==(const FramebufferAttachment& lhs, const FramebufferAttachment& rhs)
-        {
-            return lhs.texture == rhs.texture
-                   && lhs.subresources == rhs.subresources
-                   && lhs.format == rhs.format
-                   && lhs.isReadOnly == rhs.isReadOnly;
-        }
 
-        friend bool operator!=(const FramebufferAttachment& lhs, const FramebufferAttachment& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     struct FramebufferDesc
@@ -1725,17 +1511,6 @@ namespace nvrhi
         FramebufferDesc& setShadingRateAttachment(ITexture* texture) { shadingRateAttachment = FramebufferAttachment().setTexture(texture); return *this; }
         FramebufferDesc& setShadingRateAttachment(ITexture* texture, TextureSubresourceSet subresources) { shadingRateAttachment = FramebufferAttachment().setTexture(texture).setSubresources(subresources); return *this; }
 
-        friend bool operator==(const FramebufferDesc& lhs, const FramebufferDesc& rhs)
-        {
-            return lhs.colorAttachments == rhs.colorAttachments
-                   && lhs.depthAttachment == rhs.depthAttachment
-                   && lhs.shadingRateAttachment == rhs.shadingRateAttachment;
-        }
-
-        friend bool operator!=(const FramebufferDesc& lhs, const FramebufferDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     // Describes the parameters of a framebuffer that can be used to determine if a given framebuffer
@@ -2170,18 +1945,7 @@ namespace nvrhi
         constexpr VulkanBindingOffsets& setConstantBufferOffset(uint32_t value) { constantBuffer = value; return *this; }
         constexpr VulkanBindingOffsets& setUnorderedAccessViewOffset(uint32_t value) { unorderedAccess = value; return *this; }
 
-        friend bool operator==(const VulkanBindingOffsets& lhs, const VulkanBindingOffsets& rhs)
-        {
-            return lhs.shaderResource == rhs.shaderResource
-                   && lhs.sampler == rhs.sampler
-                   && lhs.constantBuffer == rhs.constantBuffer
-                   && lhs.unorderedAccess == rhs.unorderedAccess;
-        }
 
-        friend bool operator!=(const VulkanBindingOffsets& lhs, const VulkanBindingOffsets& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     struct BindingLayoutDesc
@@ -2196,18 +1960,6 @@ namespace nvrhi
         BindingLayoutDesc& addItem(const BindingLayoutItem& value) { bindings.push_back(value); return *this; }
         BindingLayoutDesc& setBindingOffsets(const VulkanBindingOffsets& value) { bindingOffsets = value; return *this; }
 
-        friend bool operator==(const BindingLayoutDesc& lhs, const BindingLayoutDesc& rhs)
-        {
-            return lhs.visibility == rhs.visibility
-                   && lhs.registerSpace == rhs.registerSpace
-                   && lhs.bindings == rhs.bindings
-                   && lhs.bindingOffsets == rhs.bindingOffsets;
-        }
-
-        friend bool operator!=(const BindingLayoutDesc& lhs, const BindingLayoutDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     // Bindless layouts allow applications to attach a descriptor table to an unbounded
@@ -2228,18 +1980,7 @@ namespace nvrhi
         BindlessLayoutDesc& setMaxCapacity(uint32_t value) { maxCapacity = value; return *this; }
         BindlessLayoutDesc& addRegisterSpace(const BindingLayoutItem& value) { registerSpaces.push_back(value); return *this; }
 
-        friend bool operator==(const BindlessLayoutDesc& lhs, const BindlessLayoutDesc& rhs)
-        {
-            return lhs.visibility == rhs.visibility
-                   && lhs.firstSlot == rhs.firstSlot
-                   && lhs.maxCapacity == rhs.maxCapacity
-                   && lhs.registerSpaces == rhs.registerSpaces;
-        }
 
-        friend bool operator!=(const BindlessLayoutDesc& lhs, const BindlessLayoutDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     class IBindingLayout : public IResource
@@ -2591,19 +2332,6 @@ namespace nvrhi
         constexpr RenderState& setDepthStencilState(const DepthStencilState& value) { depthStencilState = value; return *this; }
         constexpr RenderState& setRasterState(const RasterState& value) { rasterState = value; return *this; }
         constexpr RenderState& setSinglePassStereoState(const SinglePassStereoState& value) { singlePassStereo = value; return *this; }
-
-        friend bool operator==(const RenderState& lhs, const RenderState& rhs)
-        {
-            return lhs.blendState == rhs.blendState
-                   && lhs.depthStencilState == rhs.depthStencilState
-                   && lhs.rasterState == rhs.rasterState
-                   && lhs.singlePassStereo == rhs.singlePassStereo;
-        }
-
-        friend bool operator!=(const RenderState& lhs, const RenderState& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     enum class VariableShadingRate : uint8_t
@@ -2682,25 +2410,7 @@ namespace nvrhi
         GraphicsPipelineDesc& setVariableRateShadingState(const VariableRateShadingState& value) { shadingRateState = value; return *this; }
         GraphicsPipelineDesc& addBindingLayout(IBindingLayout* layout) { bindingLayouts.push_back(layout); return *this; }
 
-        friend bool operator==(const GraphicsPipelineDesc& lhs, const GraphicsPipelineDesc& rhs)
-        {
-            return lhs.primType == rhs.primType
-                   && lhs.patchControlPoints == rhs.patchControlPoints
-                   && lhs.inputLayout == rhs.inputLayout
-                   && lhs.VS == rhs.VS
-                   && lhs.HS == rhs.HS
-                   && lhs.DS == rhs.DS
-                   && lhs.GS == rhs.GS
-                   && lhs.PS == rhs.PS
-                   && lhs.renderState == rhs.renderState
-                   && lhs.shadingRateState == rhs.shadingRateState
-                   && lhs.bindingLayouts == rhs.bindingLayouts;
-        }
 
-        friend bool operator!=(const GraphicsPipelineDesc& lhs, const GraphicsPipelineDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     class IGraphicsPipeline : public IResource 
@@ -2721,16 +2431,6 @@ namespace nvrhi
         ComputePipelineDesc& setComputeShader(IShader* value) { CS = value; return *this; }
         ComputePipelineDesc& addBindingLayout(IBindingLayout* layout) { bindingLayouts.push_back(layout); return *this; }
 
-        friend bool operator==(const ComputePipelineDesc& lhs, const ComputePipelineDesc& rhs)
-        {
-            return lhs.CS == rhs.CS
-                   && lhs.bindingLayouts == rhs.bindingLayouts;
-        }
-
-        friend bool operator!=(const ComputePipelineDesc& lhs, const ComputePipelineDesc& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
 
     class IComputePipeline : public IResource 
@@ -2939,17 +2639,7 @@ namespace nvrhi
             PipelineShaderDesc& setShader(IShader* value) { shader = value; return *this; }
             PipelineShaderDesc& setBindingLayout(IBindingLayout* value) { bindingLayout = value; return *this; }
 
-            friend bool operator==(const PipelineShaderDesc& lhs, const PipelineShaderDesc& rhs)
-            {
-                return lhs.exportName == rhs.exportName
-                       && lhs.shader == rhs.shader
-                       && lhs.bindingLayout == rhs.bindingLayout;
-            }
 
-            friend bool operator!=(const PipelineShaderDesc& lhs, const PipelineShaderDesc& rhs)
-            {
-                return !(lhs == rhs);
-            }
         };
 
         struct PipelineHitGroupDesc
@@ -2967,21 +2657,6 @@ namespace nvrhi
             PipelineHitGroupDesc& setIntersectionShader(IShader* value) { intersectionShader = value; return *this; }
             PipelineHitGroupDesc& setBindingLayout(IBindingLayout* value) { bindingLayout = value; return *this; }
             PipelineHitGroupDesc& setIsProceduralPrimitive(bool value) { isProceduralPrimitive = value; return *this; }
-
-            friend bool operator==(const PipelineHitGroupDesc& lhs, const PipelineHitGroupDesc& rhs)
-            {
-                return lhs.exportName == rhs.exportName
-                       && lhs.closestHitShader == rhs.closestHitShader
-                       && lhs.anyHitShader == rhs.anyHitShader
-                       && lhs.intersectionShader == rhs.intersectionShader
-                       && lhs.bindingLayout == rhs.bindingLayout
-                       && lhs.isProceduralPrimitive == rhs.isProceduralPrimitive;
-            }
-
-            friend bool operator!=(const PipelineHitGroupDesc& lhs, const PipelineHitGroupDesc& rhs)
-            {
-                return !(lhs == rhs);
-            }
         };
 
         struct PipelineDesc
@@ -3141,20 +2816,6 @@ namespace nvrhi
         CommandListParameters& setScratchChunkSize(size_t value) { scratchChunkSize = value; return *this; }
         CommandListParameters& setScratchMaxMemory(size_t value) { scratchMaxMemory = value; return *this; }
         CommandListParameters& setQueueType(CommandQueue value) { queueType = value; return *this; }
-
-        friend bool operator==(const CommandListParameters& lhs, const CommandListParameters& rhs)
-        {
-            return lhs.enableImmediateExecution == rhs.enableImmediateExecution
-                   && lhs.uploadChunkSize == rhs.uploadChunkSize
-                   && lhs.scratchChunkSize == rhs.scratchChunkSize
-                   && lhs.scratchMaxMemory == rhs.scratchMaxMemory
-                   && lhs.queueType == rhs.queueType;
-        }
-
-        friend bool operator!=(const CommandListParameters& lhs, const CommandListParameters& rhs)
-        {
-            return !(lhs == rhs);
-        }
     };
     
     //////////////////////////////////////////////////////////////////////////
