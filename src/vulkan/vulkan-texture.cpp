@@ -335,6 +335,10 @@ namespace nvrhi::vulkan
 
             if((desc.sharedResourceFlags & SharedResourceFlags::Shared) != 0)
             {
+#ifdef NVRHI_WITH_CUDA
+                desc.mapped_id = desc.guid++;
+#endif
+
 #ifdef _WIN32
                 texture->sharedHandle = m_Context.device.getMemoryWin32HandleKHR({ texture->memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 });
 #else

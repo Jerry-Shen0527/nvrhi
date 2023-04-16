@@ -38,6 +38,8 @@ option(NVRHI_WITH_VALIDATION "Build NVRHI the validation layer" ON)
 option(NVRHI_WITH_VULKAN "Build the NVRHI Vulkan backend" ON)
 option(NVRHI_WITH_RTXMU "Use RTXMU for acceleration structure management" OFF)
 
+option(NVRHI_WITH_CUDA_SUPPORT "Expose external buffer support and other functions of CUDA" OFF)
+
 cmake_dependent_option(NVRHI_WITH_NVAPI "Include NVAPI support (requires NVAPI SDK)" OFF "WIN32" OFF)
 cmake_dependent_option(NVRHI_WITH_DX11 "Build the NVRHI D3D11 backend" ON "WIN32" OFF)
 cmake_dependent_option(NVRHI_WITH_DX12 "Build the NVRHI D3D12 backend" ON "WIN32" OFF)
@@ -87,6 +89,7 @@ if (NVRHI_WITH_NVAPI AND NOT TARGET nvapi)
         set_property(TARGET nvapi PROPERTY IMPORTED_LOCATION "${NVAPI_LIBRARY}")
     endif()
 endif()
+
 
 
 set(include_common
@@ -311,6 +314,16 @@ if (NVRHI_WITH_VULKAN)
 
     target_link_libraries(${nvrhi_vulkan_target} Vulkan-Headers)
 
+endif()
+
+if (NVRHI_WITH_CUDA_SUPPORT)
+    message("Build nvrhi with CUDA.")
+    target_compile_definitions(nvrhi PUBLIC NVRHI_WITH_CUDA)
+
+    if (NVRHI_WITH_OPTIX_SUPPORT)
+        message("Build nvrhi with OPTIX.")
+        target_compile_definitions(nvrhi PUBLIC NVRHI_WITH_OPTIX)
+    endif()
 endif()
 
 
