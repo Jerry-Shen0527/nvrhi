@@ -457,11 +457,6 @@ namespace nvrhi
         constexpr TextureDesc& setUseClearValue(bool value) { useClearValue = value; return *this; }
         constexpr TextureDesc& setInitialState(ResourceStates value) { initialState = value; return *this; }
         constexpr TextureDesc& setKeepInitialState(bool value) { keepInitialState = value; return *this; }
-
-#ifdef NVRHI_WITH_CUDA
-        mutable int mapped_id = 0;
-        static int guid;
-#endif
     };
 
     // describes a 2D section of a single mip level + single slice of a texture
@@ -2652,10 +2647,8 @@ namespace nvrhi
 
         friend class detail::CudaLinearBuffer;
 
-        mutable int mapped_id = 0;
+        nvrhi::IResource* map_source;
 
-    private:
-        static int guid;
     };
 
     struct CudaSurfaceObjectDesc
@@ -2686,10 +2679,8 @@ namespace nvrhi
 
 
         friend class detail::CudaSurfaceObject;
-        mutable int mapped_id = 0;
 
-       private:
-        static int guid;
+        nvrhi::IResource* map_source;
     };
 
     struct PtrTranpoline
@@ -2724,6 +2715,11 @@ namespace nvrhi
         [[nodiscard]] virtual const CudaSurfaceObjectDesc& getDesc() const = 0;
         virtual cudaSurfaceObject_t GetSurfaceObject() const = 0;
     };
+
+#ifdef NVRHI_WITH_CUDA
+    using CudaLinearBufferHandle = RefCountPtr<ICudaLinearBuffer>;
+    using CudaSurfaceObjectHandle = RefCountPtr<ICudaSurfaceObject>;
+#endif
 
 #ifdef NVRHI_WITH_OPTIX
     class OptiXModuleDesc
@@ -2771,10 +2767,6 @@ namespace nvrhi
         [[nodiscard]] virtual const OptiXPipelineDesc& getDesc() const = 0;
         virtual OptixPipeline getPipeline() const = 0;
     };
-
-
-    using CudaLinearBufferHandle = RefCountPtr<ICudaLinearBuffer>;
-    using CudaSurfaceObjectHandle = RefCountPtr<ICudaSurfaceObject>;
     using OptiXModuleHandle = RefCountPtr<IOptiXModule>;
     using OptiXPipelineHandle = RefCountPtr<IOptiXPipeline>;
     using OptiXProgramGroupHandle = RefCountPtr<IOptiXProgramGroup>;
@@ -3085,7 +3077,7 @@ namespace nvrhi
        private:
         CUstream optixStream;
         OptixDeviceContext optixContext = nullptr;
-        bool isOptiXInitalized = false;
+        static inline bool isOptiXInitalized = false;
         void OptixPrepare();
 #endif
     };

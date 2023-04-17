@@ -22,6 +22,11 @@
 
 #pragma once
 
+#ifdef _WIN64
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <dxgi1_2.h>
+#endif
+
 #include <vulkan/vulkan.h>
 
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1

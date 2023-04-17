@@ -248,16 +248,6 @@ namespace nvrhi::vulkan
                                 .setSharingMode(vk::SharingMode::eExclusive)
                                 .setSamples(sampleCount)
                                 .setFlags(flags);
-        
-#if _WIN32
-        const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32;
-#else
-        const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
-#endif
-
-        vk::ExternalMemoryImageCreateInfo externalImage{ handleType };
-        if (desc.sharedResourceFlags == SharedResourceFlags::Shared)
-            texture->imageInfo.setPNext(&externalImage);
     }
 
     TextureSubresourceView& Texture::getSubresourceView(const TextureSubresourceSet& subresource, TextureDimension dimension, TextureSubresourceViewType viewtype)
@@ -320,6 +310,15 @@ namespace nvrhi::vulkan
         Texture *texture = new Texture(m_Context, m_Allocator);
         assert(texture);
         fillTextureInfo(texture, desc);
+#if _WIN32
+        const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32Kmt;
+#else
+        const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
+#endif
+
+        vk::ExternalMemoryImageCreateInfo externalImage{ handleType };
+        if (desc.sharedResourceFlags == SharedResourceFlags::Shared)
+            texture->imageInfo.setPNext(&externalImage);
 
         vk::Result res = m_Context.device.createImage(&texture->imageInfo, m_Context.allocationCallbacks, &texture->image);
         ASSERT_VK_OK(res);
@@ -335,10 +334,6 @@ namespace nvrhi::vulkan
 
             if((desc.sharedResourceFlags & SharedResourceFlags::Shared) != 0)
             {
-#ifdef NVRHI_WITH_CUDA
-                desc.mapped_id = desc.guid++;
-#endif
-
 #ifdef _WIN32
                 texture->sharedHandle = m_Context.device.getMemoryWin32HandleKHR({ texture->memory, vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32 });
 #else

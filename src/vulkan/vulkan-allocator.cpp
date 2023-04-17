@@ -122,13 +122,23 @@ namespace nvrhi::vulkan
         if (enableDeviceAddress)
             allocFlags.flags |= vk::MemoryAllocateFlagBits::eDeviceAddress;
 
-#ifdef _WIN32
+#ifdef _WIN64
+        auto vulkanExportMemoryWin32HandleInfoKHR = vk::ExportMemoryWin32HandleInfoKHR{};
+
+        vulkanExportMemoryWin32HandleInfoKHR.setDwAccess(
+            DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE);
+        vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR)NULL;
+
         const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32;
 #else
         const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
 #endif
         auto exportInfo = vk::ExportMemoryAllocateInfo()
             .setHandleTypes(handleType);
+
+#ifdef _WIN64
+        exportInfo.setPNext(&vulkanExportMemoryWin32HandleInfoKHR);
+#endif
 
         if(enableExportMemory)
             allocFlags.setPNext(&exportInfo);

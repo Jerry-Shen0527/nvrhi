@@ -302,9 +302,6 @@ namespace nvrhi::d3d12
         if ((d.sharedResourceFlags & SharedResourceFlags::Shared) != 0) {
             heapFlags |= D3D12_HEAP_FLAG_SHARED;
             isShared = true;
-#ifdef NVRHI_WITH_CUDA
-            d.mapped_id = d.guid++;
-#endif
         }
         if ((d.sharedResourceFlags & SharedResourceFlags::Shared_CrossAdapter) != 0) {
             rd.Flags |= D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER;
