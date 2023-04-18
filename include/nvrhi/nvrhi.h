@@ -2680,7 +2680,7 @@ namespace nvrhi
 
         friend class detail::CudaSurfaceObject;
 
-        nvrhi::IResource* map_source;
+        mutable nvrhi::IResource* map_source;
     };
 
     struct PtrTranpoline
