@@ -39,6 +39,8 @@
 #include <string>
 #include <vector>
 
+#include "nvrhi.h"
+
 #define NVRHI_ENUM_CLASS_FLAG_OPERATORS(T) \
     inline T operator | (T a, T b) { return T(uint32_t(a) | uint32_t(b)); } \
     inline T operator & (T a, T b) { return T(uint32_t(a) & uint32_t(b)); } /* NOLINT(bugprone-macro-parentheses) */ \
@@ -2716,10 +2718,8 @@ namespace nvrhi
         virtual cudaSurfaceObject_t GetSurfaceObject() const = 0;
     };
 
-#ifdef NVRHI_WITH_CUDA
     using CudaLinearBufferHandle = RefCountPtr<ICudaLinearBuffer>;
     using CudaSurfaceObjectHandle = RefCountPtr<ICudaSurfaceObject>;
-#endif
 
 #ifdef NVRHI_WITH_OPTIX
     class OptiXModuleDesc
@@ -2770,6 +2770,27 @@ namespace nvrhi
     using OptiXModuleHandle = RefCountPtr<IOptiXModule>;
     using OptiXPipelineHandle = RefCountPtr<IOptiXPipeline>;
     using OptiXProgramGroupHandle = RefCountPtr<IOptiXProgramGroup>;
+
+    class OptiXTraversableDesc;
+    class IOptiXTraversable : public IResource
+    {
+    public:
+        [[nodiscard]] virtual const OptiXTraversableDesc& getDesc() const = 0;
+        virtual OptixTraversableHandle getOptiXTraversable() const = 0;
+    };
+
+    using OptiXTraversableHandle = RefCountPtr<IOptiXTraversable>;
+
+    class OptiXTraversableDesc
+    {
+    public:
+        OptixBuildInput buildInput = {};
+        OptixAccelBuildOptions buildOptions ={};
+
+        std::vector<OptiXTraversableHandle> handles;
+    };
+
+
 #endif
 
 
@@ -2898,6 +2919,31 @@ namespace nvrhi
             OptiXPipelineDesc desc;
             OptixPipeline pipeline;
         };
+
+        class OptiXTraversable : public RefCounter<IOptiXTraversable>
+        {
+        public:
+            explicit OptiXTraversable(
+                const OptiXTraversableDesc& desc,
+                IDevice* device);
+
+            ~OptiXTraversable() override;
+
+            OptixTraversableHandle getOptiXTraversable() const override
+            {
+                return handle;
+            }
+
+            [[nodiscard]] const OptiXTraversableDesc& getDesc() const override
+            {
+                return desc;
+            }
+
+        private:
+            OptiXTraversableDesc desc;
+            OptixTraversableHandle handle = 0;
+            CUdeviceptr traversableBuffer;
+        };
 #endif
     } // namespace detail
 
@@ -3009,7 +3055,6 @@ namespace nvrhi
             IResource* source = nullptr)
         {
             auto buffer = new detail::CudaLinearBuffer(d, source, this);
-
             return CudaLinearBufferHandle::Create(buffer);
         }
 
@@ -3018,7 +3063,6 @@ namespace nvrhi
             IResource* source = nullptr)
         {
             auto buffer = new detail::CudaSurfaceObject(d, source, this);
-
             return CudaSurfaceObjectHandle::Create(buffer);
         }
 #endif
@@ -3060,6 +3104,14 @@ namespace nvrhi
             auto buffer = new detail::OptiXProgramGroup(desc, modules, this);
 
             return OptiXProgramGroupHandle::Create(buffer);
+        }
+
+        OptiXTraversableHandle createOptiXTraversable(
+            const OptiXTraversableDesc& d)
+        {
+            auto buffer = new detail::OptiXTraversable(d, this);
+
+            return OptiXTraversableHandle::Create(buffer);
         }
 
         [[nodiscard]] CUstream OptixStream()

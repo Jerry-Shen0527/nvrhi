@@ -311,7 +311,7 @@ namespace nvrhi::vulkan
         assert(texture);
         fillTextureInfo(texture, desc);
 #if _WIN32
-        const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32Kmt;
+        const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueWin32;
 #else
         const auto handleType = vk::ExternalMemoryHandleTypeFlagBits::eOpaqueFd;
 #endif
