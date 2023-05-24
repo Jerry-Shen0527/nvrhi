@@ -3114,12 +3114,6 @@ namespace nvrhi
             return OptiXTraversableHandle::Create(buffer);
         }
 
-        [[nodiscard]] CUstream OptixStream()
-        {
-            OptixPrepare();
-            return optixStream;
-        }
-
         [[nodiscard]] OptixDeviceContext OptixContext()
         {
             OptixPrepare();
@@ -3127,7 +3121,6 @@ namespace nvrhi
         }
 
        private:
-        CUstream optixStream;
         OptixDeviceContext optixContext = nullptr;
         static inline bool isOptiXInitalized = false;
         void OptixPrepare();
