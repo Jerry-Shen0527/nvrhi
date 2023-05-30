@@ -3121,6 +3121,7 @@ namespace nvrhi
         }
 
        private:
+        CUstream optixStream;
         OptixDeviceContext optixContext = nullptr;
         static inline bool isOptiXInitalized = false;
         void OptixPrepare();
