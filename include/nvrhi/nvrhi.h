@@ -2626,8 +2626,8 @@ namespace nvrhi
 
     struct CudaLinearBufferDesc
     {
-        int size;
-        int element_size;
+        size_t size;
+        size_t element_size;
 
         enum class BufferType
         {
@@ -2638,8 +2638,8 @@ namespace nvrhi
         } bufferType;
 
         CudaLinearBufferDesc(
-            int size = 0,
-            int element_size = 0,
+            size_t size = 0,
+            size_t element_size = 0,
             BufferType buffer_type = BufferType::Created)
             : size(size),
               element_size(element_size),
