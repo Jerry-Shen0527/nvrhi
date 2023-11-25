@@ -24,9 +24,6 @@
 
 #ifdef NVRHI_WITH_CUDA
 #include <cuda.h>
-#endif
-
-#ifdef NVRHI_WITH_OPTIX
 #include <optix.h>
 #endif
 
@@ -2720,8 +2717,6 @@ namespace nvrhi
 
     using CudaLinearBufferHandle = RefCountPtr<ICudaLinearBuffer>;
     using CudaSurfaceObjectHandle = RefCountPtr<ICudaSurfaceObject>;
-
-#ifdef NVRHI_WITH_OPTIX
     class OptiXModuleDesc
     {
     public:
@@ -2791,9 +2786,6 @@ namespace nvrhi
     };
 
 
-#endif
-
-
     namespace detail
     {
         class CudaLinearBuffer : public RefCounter<ICudaLinearBuffer>
@@ -2847,7 +2839,7 @@ namespace nvrhi
 
             ResourceHandle handle;
         };
-#ifdef NVRHI_WITH_OPTIX
+
         class OptiXModule : public RefCounter<IOptiXModule>
         {
         public:
@@ -2944,7 +2936,6 @@ namespace nvrhi
             OptixTraversableHandle handle = 0;
             CUdeviceptr traversableBuffer;
         };
-#endif
     } // namespace detail
 
 #endif
@@ -3065,9 +3056,7 @@ namespace nvrhi
             auto buffer = new detail::CudaSurfaceObject(d, source, this);
             return CudaSurfaceObjectHandle::Create(buffer);
         }
-#endif
 
-#ifdef NVRHI_WITH_OPTIX
         OptiXModuleHandle createOptiXModule(const OptiXModuleDesc& d)
         {
             OptiXModuleDesc desc = d;
